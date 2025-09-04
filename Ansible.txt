@@ -1,0 +1,152 @@
+ANSIBLE NOTES/SETUPS/STEPS 
+
+yum install ansible -y 
+yum install python-pip -y 
+passwd root  
+
+vim /etc/ssh/sshd_config  
+(40, 65 lines)
+
+systemctl restart sshd 
+(To restart sshd)
+
+vim /etc/ansible/hosts 
+(Inventory to save the IPs of slave servers) (only in master or ansible server)  
+
+ssh-keygen 
+(To generate a key)
+
+ll .ssh
+(To find the generated key)
+
+ssh-copy-id root@private-IP-address-of-a-slave-server  
+
+ansible all -m ping 
+(To check all the servers which are connected to master server)
+
+
+vim playbook.yaml
+
+1.
+
+---
+# this is a target
+- hosts: all
+  connection: ssh
+
+  tasks:
+    - name: This is for installing git
+      yum: name=git state=present
+...
+
+2.
+
+---
+# this is a target
+- hosts: all
+  connection: ssh
+
+  tasks:
+    - name: This is for installing git
+      yum: name=git state=present
+
+    - name: This is for installing maven
+      yum: name=maven state=present
+...
+
+3.
+
+---
+# this is a target
+- hosts: all
+  connection: ssh
+
+  vars:
+    - a: git
+    - b: maven
+
+  tasks:
+    - name: This is for installing git
+      yum: name={{a}} state=present
+
+    - name: This is for installing maven
+      yum: name={{b}} state=present
+...
+
+4.
+
+ansible-playbook playbook.yaml --extra-vars "a=git b=maven"
+
+---
+# this is a target
+- hosts: all
+  connection: ssh
+
+  tasks:
+    - name: This is for installing git
+      yum: name={{a}} state=present
+
+    - name: This is for installing maven
+      yum: name={{b}} state=present
+...
+
+5.
+
+---
+# this is a target
+- hosts: all
+  connection: ssh
+
+  tasks:
+    - name: This is for creating a file
+      file: path="/root/file1.txt" state=touch
+...
+
+
+6.
+
+---
+# this is a target
+- hosts: all
+  connection: ssh
+
+  tasks:
+    - name: This is for creating a folder
+      file: path="/root/folder1" state=directory
+...
+
+7.
+
+---
+# this is a target
+- hosts: all
+  connection: ssh
+
+  tasks:
+    - name: This is for creating a folder
+      copy:
+        dest: "/root/file1.txt"
+        content: |
+         Welcome
+         to
+         Ansible
+         Playbook
+...
+
+8.
+
+---
+# this is a target
+- hosts: all
+  connection: ssh
+
+  tasks:
+    - name: This is for creating a folder
+      copy:
+        src: "/root/playbook.yaml"
+        dest: "/root/folder1"
+
+...
+
+
+ansible-playbook playbook.yaml
