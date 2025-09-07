@@ -1,0 +1,144 @@
+ DOCKER
+
+sudo -i
+
+yum install docker -y && systemctl start docker
+
+docker images
+(To see list of images)
+
+docker ps
+(To see the containers)
+
+touch pavan.txt
+
+vim Dockerfile
+(
+1.
+FROM ubuntu
+MAINTAINER name pavan
+LABEL this is my first dockerfile
+COPY sai.txt .
+(Syntax: copy source destination)
+
+2.
+FROM ubuntu
+MAINTAINER name pavan
+LABEL this is my first dockerfile
+ADD https://dlcdn.apache.org/airflow/KEYS /opt
+)
+
+
+docker build -t myfirstimage .
+(To build an image)
+
+docker run -itd --name NAMEOFACONTAINER IMAGEID/IMAGENAME
+(To create a container)
+
+docker exec -it NAMEOFACONTAINER bash
+(To go inside the container)
+
+
+
+
+
+
+docker build -t mythirdimage:tag1 .
+(We are giving tags also here with existing image name)
+
+vim Dockerfile
+(
+FROM ubuntu
+MAINTAINER name pavan
+LABEL this is my first dockerfile
+ADD https://dlcdn.apache.org/airflow/KEYS .
+WORKDIR /pavan/folder/
+COPY pavan.txt .
+)
+(Pavan.txt will be saved in our defined path but internet file will be saved in default path)
+
+docker run -itd --name container-4 mythirdimage:tag1
+
+
+
+
+vim Dockerfile
+(
+FROM ubuntu
+MAINTAINER name pavan
+LABEL this is my first dockerfile
+ADD https://dlcdn.apache.org/airflow/KEYS .
+WORKDIR /pavan/folder/
+COPY pavan.txt .
+RUN touch newfile.txt
+RUN apt update -y
+RUN apt install git -y
+CMD apt install maven -y
+)
+(RUN commands will run only when we are building the image)
+(CMD command will run only when we are building the Container.
+We can see the logs with this command
+docker run --name CONTAINERNAME IMAGEID/IMAGENAME)
+
+
+
+docker ps -a (get all the containers which are active and exited or down containers)
+
+
+vim Dockerfile
+(
+FROM ubuntu
+MAINTAINER name pavan
+LABEL this is my first dockerfile
+ADD https://dlcdn.apache.org/airflow/KEYS .
+WORKDIR /pavan/folder/
+COPY pavan.txt .
+RUN touch newfile.txt
+RUN apt update -y
+RUN apt install tree -y
+ENTRYPOINT ["apt", "install", "-y"]
+CMD ["docker.io"]
+)
+(Entrypoint is constant, but CMD value can vary)
+
+
+
+
+vim Dockerfile
+(
+FROM ubuntu
+MAINTAINER name pavan
+LABEL this is my first dockerfile
+ADD https://dlcdn.apache.org/airflow/KEYS .
+WORKDIR /pavan/folder/
+COPY pavan.txt .
+RUN touch newfile.txt
+RUN apt update -y
+RUN apt install tree -y
+ENTRYPOINT ["apt", "install", “git”, "-y"]
+CMD ["docker.io"]
+)
+(In this case only git is installed in container because ENTRYPOINT is the first priority)
+
+
+
+
+vim Dockerfile
+(
+FROM ubuntu
+MAINTAINER name pavan
+LABEL this is my first dockerfile
+ADD https://dlcdn.apache.org/airflow/KEYS .
+WORKDIR /pavan/folder/
+COPY pavan.txt .
+RUN touch newfile.txt
+EXPOSE 80
+ENV name=raviteja
+ARG course=devops
+RUN echo "hello $name, are you learning $course"
+)
+
+(We can access the ENV values, but not ARG values in the container)
+
+printenv
+(Used to see env values or variable in the container)
