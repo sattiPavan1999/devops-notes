@@ -142,3 +142,130 @@ RUN echo "hello $name, are you learning $course"
 
 printenv
 (Used to see env values or variable in the container)
+
+
+
+
+
+
+
+
+
+
+vim Dockerfile
+(
+FROM httpd
+MAINTAINER name pavan
+LABEL THIS IS MY HTML FILE
+EXPOSE 80
+COPY . /usr/local/apache2/htdocs/
+)
+
+docker build -t image-1:v1 .
+
+docker run -itd --name container-1 -p 1234:80 image-1:v1
+
+
+
+
+
+yum install git -y
+
+git clone https://github.com/sattiPavan1999/one.git
+
+cd one
+
+git checkout master
+
+rm -rf Dockerfile script.js  styles.css  tomcat-users.xml
+
+vim maven.sh
+
+Install maven on server
+
+* sudo yum install java-17-amazon-corretto -y
+* cd /opt
+* wget https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.tar.gz
+* sudo tar -xzf apache-maven-3.9.11-bin.tar.gz
+* sudo mv apache-maven-3.9.11 maven
+* echo 'export M2_HOME=/opt/maven' | sudo tee -a /etc/profile.d/maven.sh
+* echo 'export PATH=${M2_HOME}/bin:${PATH}' | sudo tee -a /etc/profile.d/maven.sh
+* sudo chmod +x /etc/profile.d/maven.sh
+* source /etc/profile.d/maven.sh
+* mvn -version
+* mvn clean package
+
+sh maven.sh
+
+mvn -v
+
+
+vim Dockerfile
+(
+FROM tomcat:8.0.20-jre8
+EXPOSE 8080
+COPY tomcat-users.xml /usr/local/tomcat/conf/
+COPY target/*.war /usr/local/tomcat/webapps/
+)
+
+
+docker build -t image-2:v2 .
+
+docker run -itd --name container-4 -p 1133:8080 image-2:v2
+
+
+
+
+
+FOR MYSQL
+
+
+
+vim Dockerfile
+(
+FROM mysql/mysql-server:5.7
+ENV MYSQL_ROOT_PASSWORD=admin@123
+ENV MYSQL_USER=root
+EXPOSE 3306
+)
+
+docker build -t db-image:v1 .
+
+docker run -d --name container-db -p 1432:3306 db-image:v1
+
+docker exec -it container-db-1 bash
+
+mysql -u root -p
+(If you want to go inside database)
+
+
+
+
+
+
+Push the image to docker hub
+
+
+
+docker login
+
+Username: pavanreddy1999
+Password: Sattipavan@143
+
+docker images
+
+docker tag image-2:v2 pavanreddy1999/myfirstimagerepo:tag1
+
+docker push pavanreddy1999/myfirstimagerepo:tag1
+
+
+
+
+
+docker pull pavanreddy1999/myfirstimagerepo:tag1
+(If you want to use this image)
+
+
+
+
+
