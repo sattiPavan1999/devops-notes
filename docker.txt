@@ -269,3 +269,34 @@ docker pull pavanreddy1999/myfirstimagerepo:tag1
 
 
 
+To decrease the size of the image is  1. Multistage docker
+2. Instead of using multiple run use single RUN  (Ex. RUN yum install git maven tree -y && npm install)
+3. Using .dockerignore (If there are 100 file and we want only 90 files to be sent into container then we can place those 10 files in .dockerignore)
+
+
+
+Node application along with multistaging
+
+vim Dockerfile(
+
+FROM node:19-alpine AS stage-1
+WORKDIR /flm
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 80
+
+FROM stage-1 AS stage-2
+RUN npm install --production
+COPY . .
+CMD ["node", "index.js"]
+
+) (2 stages are there so we can see less size for the image)
+
+docker build -t image:v2 .
+
+docker run -itd --name mycontainer2 -p 1001:80 image:v2
+
+
+
+
