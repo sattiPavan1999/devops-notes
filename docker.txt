@@ -300,3 +300,185 @@ docker run -itd --name mycontainer2 -p 1001:80 image:v2
 
 
 
+trivy 
+Install trivy
+
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.41.0
+
+trivy -v
+(Check version)
+
+trivy image firstimage:v2
+(Scan image)
+
+docker rmi firstimage:v3
+(TO REMOVE IMAGE)
+
+docker stop container1
+(TO STOP THE CONTAINER)
+
+docker rm conatiner1
+(TO REMOVE THE CONTAINER)
+
+docker rmi firstimage:v2
+(AFTER REMOVING THE CONTAINER ONLY WE CAN REMOVE THE REFERENCED IMAGE)
+
+docker system df
+(TO CHECK THE CACHE SIZE OCCUPIED)
+
+docker system prune
+(TO CLEAR ALL THE MEMORY IN CACHE)
+
+
+Because of choosing the right image, we can get very few vulnerabilities.
+If we take wrong image, we will get so many vulnerabilities
+Alpine images are very safe and secure and light weight also
+
+
+We can search for a specific issue that we got from trivy scan of images
+https://avd.aquasec.com/
+We can copy the id from trivy and search for it in this aquasec database website
+
+
+trivy image image:v1 >> report.txt
+(We can create a report of these vulnerabilities and share this to developers)
+
+trivy image pavanreddy1999/myfirstimagerepo:tag1
+(We can scan for a image which is in docker hub)
+
+
+
+
+Networks
+
+docker inspect container1
+(If you want to know the full information about the container like ip-address, etc…)
+
+Every ip address  will be created sequentially 
+We will get three types networks like bridge, host, none by default
+
+Bridge network
+Whenever we create a container in docker then this container is created on this bridge network because the default network is bridge.
+
+Host network
+The container will get the ip address from the host (in our case the host is ec2)
+
+docker run -itd --name container3 -p 1133:80 --network host nginx
+(We are specifying the network should be in host network and nginx is the image)
+(If we inspect this container we will not see any ip address because it is same as host )
+(If we try to access through	 the host ip address we can access the nginx application)
+
+None network
+
+docker run -itd --name container4 -p 1144:80 --network none nginx
+
+(If we inspect this container we will not see any ip address because it is a none network )
+(If we try to access through	 the host ip address we can’t access the nginx application because it is none network)
+
+
+
+docker run -itd --name container1 -p 1234:80 nginx
+(Bridge network)
+(We can access through ip-address:1234)
+
+docker run -itd --name container2 --network host shaikmustafa/cycle
+(We no need to give the port number here and if given then it will discard the port number)
+(Host network)
+(We can access through host ip-address)
+
+docker run -itd --name container3 -p 2222:80 --network none shaikmustafa/paytm:bus
+(None network)
+(We can’t access this because it is in the none network)
+(None network won’t going to expose outside)
+(It will stay in the server only)
+(Generally we use none network for databases)
+
+
+Custom network
+
+We will create our own networks
+
+docker network create db-network
+(Create a custom network)
+
+docker network inspect dev-network
+(If we want to know full information about a network)
+
+
+By default two networks cannot communicate 
+
+docker inspect container1 | grep -i "Ipaddress"
+(To know only the IP address)
+
+docker inspect container2 | grep -i "Ipaddress"
+(To know only the IP address)
+
+docker exec -it container1 bash
+(To go inside the container)
+
+apt update -y
+(We cannot install any tool directly inside ubuntu server so first we have to update this)
+
+apt install iputils-ping -y
+(Install ping)
+
+ping 172.19.0.2 (ping container2-ipaddress)
+(To check container1 and container2 are communicating  or not )
+
+exit 
+(To exit from conatiner)
+
+
+
+We have to attach container2 ipaddress to container1
+And
+We have to attach container1 ipaddress to container2
+Then those both will communicate 
+
+docker network connect dev-network container2
+docker network connect db-network container1
+(Now both will communicate)
+
+
+docker network disconnect db-network container1
+(To disconnect the communication )
+
+
+
+docker stop $(docker ps -a)
+docker rm $(docker ps -a)
+(If we want to remove all the containers at a time)
+
+docker rmi $(docker images) (If we want to remove all the images at a time)
+
+docker network
+(To see list of network commands)
+
+docker network rm flm
+(To remove the fim network)
+
+docker rm -f container2
+(Remove container forcefully)
+(We no need to run stop command before removing a container here)
+
+docker network prune
+(If I want to remove all the empty networks)
+
+docker container prune
+(If I want to remove all the exited containers)
+
+docker image prune
+(If I want to remove dangling images)
+
+docker rm -f $(docker ps -a)
+(To remove all the containers forcefully)
+
+docker rmi $(docker images)
+(To remove all the images)
+
+docker system prune
+(If we want to remove all the unused components (networks, containers, images, volumes)
+
+
+
+
