@@ -482,3 +482,227 @@ docker system prune
 
 
 
+
+
+
+
+
+
+Volumes
+
+
+NOTE: 1. If you delete the container then volume will not be deleted
+            2. If you make any changes in the container like deleting or modiffying the files in the containers. Those changes are replicated in all the containers and in the volume also.
+	    3. We can attach the volume to new container 
+            4. We cannot attach the volume to existing containers
+
+
+
+UN-NAMED VOLUME
+
+
+
+yum install docker -y && systemctl start docker
+
+docker run -itd --name container-1 -v /pavan ubuntu
+(Create a container along with volume and mount the volume to /pavan path in the container)
+
+docker volumn ls
+(List of volumes)
+
+docker inspect container-1
+(Inspecting container)
+
+cd /var/lib/docker/volumes
+(Default path)
+
+cd b3938fb7f71806c776676e92e8572d8c08b26396d5e9ec68fd771bc3bbf43ad5
+(It is a volume name)
+
+cd _data
+(_data is default thing)
+
+touch file{1..5}.txt
+(Create files in this column so that you can see in containers)
+
+cd
+(Go back to root user)
+
+docker run -itd --name container-2 --privileged=true --volumes-from=container-1 ubuntu
+(Create a container 2 and mount the volume from container 1)
+
+docker exec -it container-2 bash
+(Go into the container 2 to see or modify the files in the volumn)
+
+
+
+
+docker ps
+(List of containers)
+
+docker rm -f container-1 container-2
+(Force delete the containers)
+
+docker volume ls
+(List of volumes. We can still see the volume here even if we delete the containers)
+
+docker run -itd --name container-3 --mount src=b3938fb7f71806c776676e92e8572d8c08b26396d5e9ec68fd771bc3bbf43ad5,destination=/pavan ubuntu
+(We are creating a new container and attaching an existing volume to it and src is the name of the volume and destination is the path in the container)
+
+
+
+
+
+NAMED VOLUME
+
+
+docker volume create myvolume
+(Create a volume with the name)
+
+docker volume ls
+(List of volumes)
+
+docker run -itd --name container-4 --mount src=myvolume,destination=/sai ubuntu
+(Create a container with attaching the volume and give path)
+
+docker exec -it container-4 bash
+(Go into the container-4 and do below commands to create a folders that we can see in the volume)
+    cd sai
+    touch folder{1..5}
+    exit
+
+cd /var/lib/docker/volumes/
+
+cd myvolume
+
+cd _data
+(We can see the created folders in this)
+
+
+
+
+
+docker rm -f ${docker ps -a}
+(Remove all the containers )
+
+docker ps -a
+(See list of containers)
+
+docker volume prune
+(Remove all unnamed volumes)
+
+docker volume ls
+(See list of volumes)
+
+docker volume rm myvolume
+(Remove named volume)
+
+docker volume ls
+(See list of volumes)
+
+
+
+
+
+FIRST WAY - container to container 
+
+
+docker volume create myapp
+
+cd /var/lib/docker/volumes
+
+cd myapp
+
+cd _data
+
+vim index.html
+(Add some html data)
+
+cd
+(Go back to root user)
+
+docker run -itd --name container-1 -p 1234:80 --mount src=myapp,destination=/usr/share/nginx/html/  nginx
+(Create a container 1 with nginx image by mounting the volume and by giving the port number also because we need to access)
+
+docker run -itd --name container-2 -p 1122:80 --mount src=myapp,destination=/usr/share/nginx/html/  nginx
+(Create a container 2 with nginx image by mounting the volume and by giving the port number also because we need to access)
+
+cd /var/lib/docker/volumes
+
+cd myapp
+
+cd _data
+
+vim index.html
+(Modify the data)
+
+cd
+(Go back to root user)
+
+
+
+
+SECOND WAY - host(our server) to container
+
+git clone https://github.com/devops0014/static-cycle-website-jenkins-docker-.git
+(Clone the repo)
+
+cd static-cycle-website-jenkins-docker-/
+(Go into the repo)
+
+ls
+(See list of files)
+
+docker run -itd --name container-5 -p 3344:80 -v $(pwd):/usr/share/nginx/html/ nginx
+(We are sending all the PWD files into the container)
+
+
+
+
+
+READ ONLY
+
+docker volume ls
+
+docker run -itd --name container-6 -v myapp:/mydata:ro ubuntu
+(Create a container with read only permission)
+(myapp is the volume name and mydata is the destination and ro is read only)
+
+docker exec -it container-6 bash
+(Go into the container-6 and try to modify the data or create any folder then we will get error because only RO permission is there)
+	cd mydata
+	touch folder1
+	exit
+
+
+
+
+
+
+docker run -itd --name container-7 -v divya:/myvolume:ro ubuntu
+(Create a container with Divya as a volume name is created here and myvolume is the path in container)
+
+docker exec -it container-7 bash
+	cd myvolume
+	touch file.txt
+	cd
+	exit
+	
+
+docker inspect container-7 | grep -i "volume"
+(Inspecting the container volume)
+
+cd /var/lib/docker/volumes/divya/_data
+(Go to source volume to modify)
+
+touch file{1..5}.txt
+(Add the files)
+
+cd
+(Go to root)
+
+docker exec -it container-7 bash
+(We can see files in the container but we can’t modify in the container)
+
+
+
