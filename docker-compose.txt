@@ -1,0 +1,156 @@
+
+Docker Compose
+
+* Docker compose is a tool
+* Here we will create a single YML file in which we git multiple container configurations
+* If we execute this yml file, all the docker files which we have will be build at a time. So, images and containers will be created at a time 
+
+yum install docker -y && systemctl start docker
+(Install and run docker)
+
+vim docker-compose.sh
+(
+# Download the current stable release of Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+# Apply executable permissions
+sudo chmod +x /usr/local/bin/docker-compose
+# Create a symbolic link
+sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+
+# Install using pip (Python package manager)
+sudo yum install -y python3-pip
+sudo pip3 install docker-compose
+
+#check version
+docker-compose --version
+)
+
+sh docker-compose.sh
+(Install docker compose tool)
+
+docker-compose version
+(Check if it is installed or not)
+
+
+vim compose.yml or vim compose.yaml or docker-compose.yml or docker-compose.yaml
+(Only these will be supported)
+
+
+vim compose.yml
+(
+---
+version: "3"
+services:
+  devops:
+    container_name: cont-1
+    image: shaikmustafa/dm
+    ports:
+      - "1234:80"
+  cloud:
+    container_name: cont-2
+    image: shaikmustafa/cycle
+    ports:
+      - "5678:80"
+  amazon:
+    container_name: cont-3
+    image: shaikmustafa/mygame
+    ports:
+      - "1122:80"
+)
+
+
+docker-compose up -d
+(It will execute the docker-compose file)
+
+docker ps
+(To check all the containers)
+
+docker-compose down
+(To delete the containers created using docker-compose)
+
+docker-compose stop
+(to change the container state to exit)
+
+docker-compose start
+(to change the container state to start)
+
+docker-compose config
+(To see the configurations)
+
+docker-compose images
+(To see the images which are created using docker-compose)
+
+docker-compose ps
+(To see the containers which are created using docker-compose)
+
+docker stop cont-1
+(To stop single container)
+docker start cont-1
+(To start single container)
+docker rm cont-1
+(To delete single container)
+
+docker logs cont-1
+(To checks the logs of a specific container)
+
+docker-compose logs
+(To get the logs of all the containers which are created by docker-compose)
+
+docker-compose pause
+(To pause the containers, So users cant perform any actions)
+
+docker-compose unpause
+(To unpause the containers)
+
+
+mkdir swiggy
+
+cd swiggy
+
+mkdir instamart food
+
+vim food/index.html
+(
+<h1>This is food</h1>
+)
+
+vim instamart/index.html
+(
+<h1>This is Instamart</h1>
+)
+
+vim food/Dockerfile
+(
+FROM nginx:stable-alpine
+COPY . /usr/share/nginx/html/
+)
+
+vim instamart/Dockerfile
+(
+FROM nginx:stable-alpine
+COPY . /usr/share/nginx/html/
+)
+
+vim docker-compose.yml
+(
+---
+version: "3"
+services:
+  food:
+    container_name: foodcontainer
+    build: ./food/
+    ports:
+      - "1234:80"
+
+  instamart:
+    container_name: instamartcontainer
+    build: ./instamart/
+    ports:
+      - "5678:80"
+)
+
+
+(NOTE: here it will create both image and container)
+
+
+docker-compose up -d
