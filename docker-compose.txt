@@ -154,3 +154,335 @@ services:
 
 
 docker-compose up -d
+
+
+
+
+
+
+1 yum install git docker -y && systemctl start docker
+        (install git, docker and start docker)
+    2  vim docker-compose.sh
+        (include commands to install for docker-compose)
+    3  sh docker-compose.sh
+        (install docker-compose)
+    4  docker-compose version
+        (check if it is installed or not)
+    5  git clone https://github.com/devops0014/compose.git
+        (clone repo)
+    6  ls
+    7  cd compose/
+        (get inside repo)
+    8  ls
+    9  cd paytm/
+        (get inside paytm folder)
+   15  ls
+   16  vim compose.yml
+        (
+            ---
+                version: "3"
+                services:
+                  bus:
+                    container_name: bus-container
+                    build: ./bus-tickets/
+                    ports:
+                      - "1111:80"
+                    volumes:
+                      - bus-volume:/usr/share/nginx/html/
+                
+                  train:
+                    container_name: train-container
+                    build: ./train-tickets/
+                    ports:
+                      - "2222:80"
+                    volumes:
+                      - train-volume:/usr/share/nginx/html/
+                   
+                   movie:
+                    container_name: movie-container
+                    build: ./movie-tickets/
+                    ports:
+                      - "3333:80"
+                    volumes:
+                      - movie-volume:/usr/share/nginx/html/
+                
+                volumes:
+                  bus-volume:
+                  train-volume:
+                  movie-volume:      
+        )
+   17  docker-compose up -d
+        (execute this yml file to create images and containers at a time and create volumes as well)
+   18  docker images
+   19  docker ps
+   20  ls
+   21  docker volume ls
+        (see volumes)
+   22  cd /var/lib/docker/volumes/paytm_train-volume/_data
+        (go to this path to edit the index file to see changes in UI)
+   29  ls
+   30  vim index.html
+        (Do some changes)
+      (Now refresh the UI)
+
+
+
+     1  docker-compose down
+        (It will remove all the containers and volumes which are created previously )
+    6  vim compose.yml 
+       (
+         ---
+            version: "3"
+            services:
+              bus:
+                container_name: bus-container
+                build: ./bus-tickets/
+                ports:
+                  - "1111:80"
+                volumes:
+                  - bus-volume:/usr/share/nginx/html/
+                networks:
+                  - bus-network
+            
+              train:
+                container_name: train-container
+                build: ./train-tickets/
+                ports:
+                  - "2222:80"
+                volumes:
+                  - train-volume:/usr/share/nginx/html/
+                networks:
+                  - train-network
+            movie:
+                container_name: movie-container
+                build: ./movie-tickets/
+                ports:
+                  - "3333:80"
+                volumes:
+                  - movie-volume:/usr/share/nginx/html/
+                networks:
+                  - movie-network
+            
+            volumes:
+              bus-volume:
+              train-volume:
+              movie-volume:
+            
+            networks:
+              bus-network:
+              train-network:
+              movie-network:
+
+       )
+    7  docker-compose up -d
+    8  docker network ls
+       (see list of netwoks)
+    9  docker ps
+   10  docker inspect movie-container | grep -i "Network"
+       (To check the container to be in which network) 
+
+
+
+
+
+  18. vim compose.yml 
+        (
+         ---
+            version: "3"
+            services:
+              bus:
+                container_name: bus-container
+                build: ./bus-tickets/
+                ports:
+                  - "1111:80"
+                volumes:
+                  - bus-volume:/usr/share/nginx/html/
+                networks:
+                  - bus-network
+                  - train-network
+                  - movie-network
+            
+              train:
+                container_name: train-container
+                build: ./train-tickets/
+                ports:
+                  - "2222:80"
+                volumes:
+                  - train-volume:/usr/share/nginx/html/
+                networks:
+                  - bus-network
+                  - train-network
+                  - movie-network
+            movie:
+                container_name: movie-container
+                build: ./movie-tickets/
+                ports:
+                  - "3333:80"
+                volumes:
+                  - movie-volume:/usr/share/nginx/html/
+                networks:
+                  - bus-network
+                  - train-network
+                  - movie-network
+            
+            volumes:
+              bus-volume:
+              train-volume:
+              movie-volume:
+            
+            networks:
+              bus-network:
+              train-network:
+              movie-network:
+
+       )
+   19  docker-compose up -d
+        (build again)
+   22  docker ps
+   23  docker inspect bus-container
+        (copy any container IP address)
+   24  docker exec -it movie-container bash
+        (go inside the container to check wether the container which we copied IP address is communicationg with this container or not)
+        *  1  apt update -y
+            2  apt install iputils-ping -y
+            3  exit
+            4  ping 172.23.0.4
+            5  exit
+
+
+
+
+
+18. vim compose.yml 
+        (
+         ---
+            version: "3"
+            services:
+              bus:
+                container_name: bus-container
+                build: ./bus-tickets/
+                ports:
+                  - "1111:80"
+                volumes:
+                  - bus-volume:/usr/share/nginx/html/
+                networks:
+                  - bus-network
+                  - train-network
+                  - movie-network
+            
+              train:
+                container_name: train-container
+                build: ./train-tickets/
+                ports:
+                  - "2222:80"
+                volumes:
+                  - train-volume:/usr/share/nginx/html/
+                networks:
+                  - bus-network
+                  - train-network
+                  - movie-network
+              environment:
+                - DB_ENDPINT="https://abc.com:3306/"
+                - DB_USER=root
+
+            movie:
+                container_name: movie-container
+                build: ./movie-tickets/
+                ports:
+                  - "3333:80"
+                volumes:
+                  - movie-volume:/usr/share/nginx/html/
+                networks:
+                  - bus-network
+                  - train-network
+                  - movie-network
+            
+            volumes:
+              bus-volume:
+              train-volume:
+              movie-volume:
+            
+            networks:
+              bus-network:
+              train-network:
+              movie-network:
+
+       )
+   19  docker-compose up -d
+        (build again)
+   24  docker exec -it train-container bash
+            * printenv
+                (run this to print the env that we given in compose file)
+
+
+
+         ANOTHER WAY FOR ENV VARIABLES
+    vim .env
+    (
+        DB_HOST=pavan
+          DB_USER=pavan
+    )
+    
+18. vim compose.yml 
+        (
+         ---
+            version: "3"
+            services:
+              bus:
+                container_name: bus-container
+                build: ./bus-tickets/
+                ports:
+                  - "1111:80"
+                volumes:
+                  - bus-volume:/usr/share/nginx/html/
+                networks:
+                  - bus-network
+                  - train-network
+                  - movie-network
+                environment:
+                  - DB_HOST_NAME=${DB_HOST}
+                  - DB_HOST_USER=${DB_USER}
+            
+              train:
+                container_name: train-container
+                build: ./train-tickets/
+                ports:
+                  - "2222:80"
+                volumes:
+                  - train-volume:/usr/share/nginx/html/
+                networks:
+                  - bus-network
+                  - train-network
+                  - movie-network
+
+            movie:
+                container_name: movie-container
+                build: ./movie-tickets/
+                ports:
+                  - "3333:80"
+                volumes:
+                  - movie-volume:/usr/share/nginx/html/
+                networks:
+                  - bus-network
+                  - train-network
+                  - movie-network
+            
+            volumes:
+              bus-volume:
+              train-volume:
+              movie-volume:
+            
+            networks:
+              bus-network:
+              train-network:
+              movie-network:
+
+       )
+   19  docker-compose up -d
+        (build again)
+   24  docker exec -it bus-container bash
+            * printenv
+                (run this to print the env that we given in compose file)
+
+
+
