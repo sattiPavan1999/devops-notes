@@ -486,3 +486,91 @@ docker-compose up -d
 
 
 
+
+
+
+
+
+1  yum install git docker -y && systemctl start docker
+    2  vim docker-compose.sh
+    3  sh docker-compose.sh
+    4  git clone https://github.com/sattiPavan1999/python-library-app.git
+    5  ls
+    6  cd python-library-app/
+    7  ls
+    8  git checkout master
+    9  ls
+   10  cat Dockerfile 
+   11  cd database/
+   12  ls
+   13  cd Dockerfile
+   14  vim Dockerfile
+   15  cd ../
+   16  ll
+   17  vim compose.yml
+         (
+		---
+version: "3"
+services:
+  db:
+    container_name: db
+    build: ./database/
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-volume:/var/lib/mysql
+    networks:
+      - dbnet
+      - mynet
+
+  auth:
+    container_name: auth-container
+    build: ./auth/
+    ports:
+      - "5001:5001"
+    networks:
+      - dbnet
+      - mynet
+      - appnet
+
+book:
+    container_name: book-container
+    build: ./book/
+    ports:
+      - "5002:5002"
+    networks:
+      - dbnet
+      - mynet
+      - appnet
+
+  borrow:
+    container_name: borrow-container
+    build: ./borrow/
+    ports:
+      - "5003:5003"
+    networks:
+      - dbnet
+      - mynet
+      - appnet
+
+app:
+    container_name: app-container
+    build: .
+    ports:
+      - "5000:5000"
+    networks:
+      - appnet
+      - mynet
+
+volumes:
+  db-volume:
+
+networks:
+  dbnet:
+  mynet:
+  appnet:
+         )
+   18  docker-compose up -d
+   19  docker ps
+   20  docker images
+   21  cd ../
