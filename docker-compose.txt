@@ -574,3 +574,267 @@ networks:
    19  docker ps
    20  docker images
    21  cd ../
+
+
+
+
+
+
+
+
+
+
+
+
+
+COMPOSE: used to create multiple services on a single host at a time
+SWARM: used to create a single service on a multiple hosts at a time 
+STACK: used to create multiple services on multiple hosts at a time
+
+
+(workers are only to run the applications)
+(master has all the permissions like updating, creating, deleting, etc...)
+
+
+	Initialize 3 servers in ec2 and give names as master, worker-1, worker-2
+    1  yum install docker -y && systemctl start docker
+	(install in all servers)
+    2  docker swarm init
+	(run this in master to get token)
+	(And paste the token in worker servers)
+    3  docker node ls
+	(To see the no.of nodes(both master and worker nodes))
+    4  docker service create --name swarm-service-1 --publish 1111:80 shaikmustafa/dm
+	(To create a service in all the nodes)
+
+(NOTE: we should always take the image from docker hub. Not from our local server)
+
+
+    5  docker service ls
+	(To get list of services)
+    6  docker service ps swarm-service-1
+	(To get the details of a particular service)
+    7  docker ps
+	(To see list of containers)
+	(In this example, we can see one container in master but we can't see in worker nodes but application we can access from worker nodes)
+    
+    8  docker service rm swarm-service-1
+	(If I want to delete the service)
+	(Then we can't access the application)
+
+
+	
+   20  docker service create --name service-2 --replicas 6 --publish 2222:80 shaikmustafa/cycle
+	(If I want to create multiple containers for a single service)
+   21  docker service ls
+   22  docker service ps service-2
+	(we will get the list of services which are created in which nodes)
+	(In this example we will get list of 6)
+   23  docker ps
+	(we will get list of containers in this master node)
+	(We can run this command to see list of containers in worker nodes also)
+
+
+(NOTE: we won't get port conflict because here we created port for service not for containers)
+
+
+   27  docker service scale service-2=15
+	(To scale up the containers)
+   28  docker service ps service-2
+	(we can see where the containers are created)
+   29  docker service scale service-2=3
+	(To scale down the containers)
+   30  docker service ps service-2
+
+
+   31  docker rm -f service-2.2.ffrle547stnyumzsddwjpp4ih
+	(Command to delete a container)
+	(IF any container is removed or deleted, then other container will be created automatically)
+	(Self healing feature is there in swarm)
+   32  docker ps
+	(we can see new container is created)
+
+ 
+   33  docker service update --image shaikmustafa/dm service-2
+	(To update the image of the container)
+	(In this example, we are previously using shaikmustafa/cycle image. But now we updated to shaikmustafa/dm image)
+
+
+
+9  docker service rollback service-2
+	(we can rollback to previous image in this service)
+    10  docker service inspect service-2
+	(To know all the details of the service)
+
+* If you want to create a new server and add this server to master server then
+  
+   docker swarm join-token worker
+   (run this in master node and copy and paste this token in new worker node to attach this to master node) 
+   (I want add a new worker node, so I am running this)
+   or 
+   docker swarm join-token manager
+	
+
+* If master want to remove the worker, he can't do it directly
+  because first we need to run the leave command in worker and then master can remove the worker
+  worker :
+     docker swarm leave
+
+  master:
+      docker node ls
+      (list of nodes with their IDs)
+
+      docker node rm bam9fy2uz1dm2snpng261057d
+
+(Note: if we remove the node from the cluster then the containers of this removed node will go to other random nodes automatically)
+
+
+(Note: we can have multiple masters also)
+      
+
+
+
+
+
+
+
+
+DOCKER COMPOSE NEW CONCEPTS
+* we can create multiple containers through docker compose
+
+    1  yum install docker -y && systemctl start docker
+	(install and start docker)
+    
+    2  vim docker-compose.sh
+       (
+       # Download the current stable release of Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+# Apply executable permissions
+sudo chmod +x /usr/local/bin/docker-compose
+# Create a symbolic link
+sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+
+# Install using pip (Python package manager)
+sudo yum install -y python3-pip
+sudo pip3 install docker-compose
+
+#check version
+docker-compose --version
+
+	)
+
+    3  sh docker-compose.sh
+	(install docker compose tool)
+
+4  vim compose.yml
+	(
+	 ---
+version: "3"
+services:
+  flm:
+    image: shaikmustafa/cycle
+    deploy:
+      replicas: 5
+    ports:
+      - "80"
+
+  devops:
+    image: httpd
+    deploy:
+      replicas: 3
+    ports:
+      - "80"
+
+	)
+    5  docker-compose up -d
+       (run this to create containers) 
+
+    7  docker ps
+	(list of containers)
+
+    8  docker rm -f root_devops_2
+	(If we remove the container then it wont be created again because it don't have self healing feature)
+    9  docker ps
+
+
+   26  docker-compose up --scale devops=10 --scale flm=10 -d
+	(If you want to scale up or down, give both the service names and list of containers to be created)
+   27  docker ps
+
+* another simple approach is
+  
+ 	vim compose.yml
+	(
+		---
+version: "3"
+services:
+  flm:
+    image: shaikmustafa/cycle
+    deploy:
+      replicas: 1
+    ports:
+      - "80"
+
+  devops:
+    image: httpd
+    deploy:
+      replicas: 1
+    ports:
+      - "80"
+
+	)
+
+(edit this compose.yml file)
+
+        docker-compose up -d
+        (and run again)
+
+
+
+
+
+
+REVERSE PROXY
+
+    1  yum install git -y
+    3  git clone https://github.com/devops0014/nginx-reverse-proxy.git
+    4  ls
+    7  cd nginx-reverse-proxy/
+    8  ls
+   11  git checkout master
+   12  ls
+   20  docker-compose up -d
+	(run this command to create a container)
+   21  vim docker-compose.yml
+   22  cd nginx/
+   23  ls
+   24  vim nginx.conf
+	(change the weight or traffic)
+   27  docker-compose build
+	(build before creating the container so the changes will be there)
+   28  docker-compose up -d
+
+
+
+
+
+DOCKER STACK
+
+   38  docker swarm init
+       (genatare a token and paste in the worker nodes)
+   39  docker node ls
+   40  vim compose.yml
+   45  docker stack deploy paytm --compose-file=compose.yml
+	(To create a stack)
+   46  docker service ls
+   49  docker stack ls
+   50  docker stack ps Paytm
+	(details of a specific stack)
+   51  docker ps
+   52  docker rm -f root_devops_1
+	(remove one container, so another container will be created)
+   53  docker ps
+   54  docker stack rm Paytm
+	(To remove the stack)
+
+
