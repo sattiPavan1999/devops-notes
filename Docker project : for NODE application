@@ -1,0 +1,269 @@
+Docker project : for NODE application
+
+SERVER:
+
+
+    1  yum install git docker -y && systemctl start docker
+    2  docker run -itd --name sonar-container -p 9000:9000 sonarqube:lts-community
+	(create a container for sonarqube)
+    3  vim trivy.sh
+	(
+		wget https://github.com/aquasecurity/trivy/releases/download/v0.18.3/trivy_0.18.3_Linux-64bit.tar.gz
+                tar zxvf trivy_0.18.3_Linux-64bit.tar.gz
+                sudo mv trivy /usr/local/bin/
+
+	)
+    4  sh trivy.sh
+    5  trivy --version
+   13  vim jenkins.sh
+	(
+		sudo yum update –y
+		sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+sudo yum upgrade
+sudo yum install java-17-amazon-corretto -y
+sudo yum install jenkins git -y
+sudo systemctl enable jenkins
+sudo systemctl start jenkins
+sudo systemctl status jenkins
+sudo mkdir -p /var/tmp_disk
+sudo chmod 1777 /var/tmp_disk
+sudo mount --bind /var/tmp_disk /tmp
+echo '/var/tmp_disk /tmp none bind 0 0' | sudo tee -a /etc/fstab
+sudo systemctl mask tmp.mount
+df -h /tmp
+sudo systemctl restart jenkins
+
+	)
+   14  sh jenkins.sh
+   16  cat /var/lib/jenkins/secrets/initialAdminPassword
+   
+   
+jenkins :
+
+⦁	create a job by selecting a pipeline
+⦁	stage 1 :
+    (
+ 
+	pipeline {
+        agent any 
+        stages {
+            stage ("clean work space") {
+                steps {
+                    cleanWs()
+                }
+            }
+        }
+	}
+
+    )
+⦁	install plugin : pipeline stage view
+⦁	stage 2:
+   (
+ 
+ 	stage ("Code") {
+                steps {
+                    git branch: 'main', url: 'https://github.com/devops0014/Zomato-Repo.git'
+                }
+            }
+    )
+
+⦁	stage 3:
+   (
+ 
+	stage ("Code Quality Analysis") {
+                steps {
+                    withSonarQubeEnv('mysonar') {
+                      sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=zomato"
+                    }
+                }
+            }
+   )
+
+  
+
+  give environment variable as
+  
+	 environment {
+            scannerHome = tool 'mysonar'
+        }
+
+
+  go to plugins and download sonar scanner
+  then
+  GO to manage Jenkins
+  select credentials
+  select system then global credentials
+  add credentials
+    select secret text
+    give token in secret. we can create this in SonarQube page. Go to my account then security in SonarQube to create     	token (select global analysis tocken).
+  add something in ID and Description
+  create
+
+  go to manage Jenkins then system then SonarQube installation
+  give some name and SonarQube url and select authentication token
+  save
+
+
+  go to tools then SonarQube scanner
+  give some name
+  and save
+
+⦁	stage 4 :
+    
+    stage ("Quality Gates") {
+                steps {
+                    script {
+                        waitForQualityGate abortPipeline: false, credentialsId: 'sonar-ID'
+                    }
+                }
+            }
+
+
+	(NOTE: create "waitForQualityGate abortPipeline: false, credentialsId: 'sonar-ID'" using pipeline syntax)
+
+    
+    Go to sonarqube to setup webhook
+    Go to zomato and project settings and webhooks
+    create a webhook
+    give a name and url as jenkins url/sonarqube-webhook/ (http://43.205.136.121:8080/sonarqube-webhook/)
+    token is not mandatory
+    and now run the pipeline. It will be green
+
+  
+⦁	stage 5 :
+
+	stage ("Build") {
+                steps {
+                    sh 'docker build -t image1 .'
+                }
+            }
+
+	run the pipeline
+	it will be failed
+	because we need to give 777 permissions to /var/run/docker.sock
+	Go to ec2 server and run this command 
+	chmod 777 /var/run/docker.sock
+	now run the pipeline again
+	it will pass now
+	run this to see images on server: docker images
+
+⦁	stage 6:
+
+	stage ("Scan") {
+                steps {
+                    sh 'trivy image image1'
+                }
+            }
+
+	run the pipeline
+
+⦁	stage 7:
+
+	    stage ("Tag") {
+                steps {
+                    sh 'docker tag image1 pavanreddy1999/zomato-project-docker:tag1'
+                }
+            }
+
+	we have to give our dockerhub username/repositoryName:tagName
+	(Note: repositoryName will be created automatically)
+
+⦁	stage 8:
+
+            stage ("Push") {
+                steps {
+                    script {
+                        withDockerRegistry(credentialsId: 'dockerhub-ID') {
+                            sh 'docker push pavanreddy1999/zomato-project-docker:tag1'
+                        }
+                    }
+                }
+            }
+
+	To push the image to dockerhub. We need to give our dockerhub credentials
+	For this, we need to download plugin called docker pipelines
+	go to pipeline syntax and select this "withDockerRegistry: Sets up Docker Registry endpoint"
+	give empty for Docker registry URL
+	and add credentials for Registry credentials
+	give username as dockerhub username and password as dockerhub password and give some random ID and Description
+	Add and generate and paste this in the script in the pipeline
+
+⦁	stage 9:
+
+	stage ("Deploy") {
+                steps {
+                    sh 'docker run -itd --name container-1 -p 3000:3000 pavanreddy1999/zomato-project-docker:tag1'
+                }
+            }
+
+	It is to deploy (we create a container here and we can access)
+	(Note: for node applications the port is 3000)
+	(pavanreddy1999/zomato-project-docker:tag1 is the image name)
+
+
+
+overall pipeline:
+
+pipeline {
+        agent any 
+        environment {
+            scannerHome = tool 'mysonar'
+        }
+        stages {
+            stage ("clean work space") {
+                steps {
+                    cleanWs()
+                }
+            }
+            stage ("Code") {
+                steps {
+                    git branch: 'main', url: 'https://github.com/devops0014/Zomato-Repo.git'
+                }
+            }
+            stage ("Code Quality Analysis") {
+                steps {
+                    withSonarQubeEnv('mysonar') {
+                      sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=zomato"
+                    }
+                }
+            }
+            stage ("Quality Gates") {
+                steps {
+                    script {
+                        waitForQualityGate abortPipeline: false, credentialsId: 'sonar-ID'
+                    }
+                }
+            }
+            stage ("Build") {
+                steps {
+                    sh 'docker build -t image1 .'
+                }
+            }
+            stage ("Scan") {
+                steps {
+                    sh 'trivy image image1'
+                }
+            }
+            stage ("Tag") {
+                steps {
+                    sh 'docker tag image1 pavanreddy1999/zomato-project-docker:tag1'
+                }
+            }
+            stage ("Push") {
+                steps {
+                    script {
+                        withDockerRegistry(credentialsId: 'dockerhub-ID') {
+                            sh 'docker push pavanreddy1999/zomato-project-docker:tag1'
+                        }
+                    }
+                }
+            }
+            stage ("Deploy") {
+                steps {
+                    sh 'docker run -itd --name container-1 -p 3000:3000 pavanreddy1999/zomato-project-docker:tag1'
+                }
+            }
+        }
+}
+
