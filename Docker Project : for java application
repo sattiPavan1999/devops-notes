@@ -1,0 +1,307 @@
+Docker project : for java application
+
+required tools :
+⦁	git
+⦁	docker
+⦁	docker-compose,swarm
+⦁	Jenkins-maven
+⦁	SonarQube
+⦁	nexus
+⦁	trivy
+⦁	EMAIL
+⦁	NEW RELIC
+
+Note: 
+⦁	we will install SonarQube in the container. we won't create a new ec2 server here.
+⦁	we take separate server for nexus (it is not a official image in the dockerhub)
+⦁	we configure maven and OWASP directly in Jenkins
+
+
+Process:
+⦁	Take two servers with 2cpus and 8gb of ram (flexi large)
+⦁	in main server - install git, docker, trivy
+⦁	second server is only for nexus
+
+nexus server (port number 8081):
+
+⦁	vim nexus.sh
+(
+sudo sed -i '27  run_as_user="nexus"' /app/nexus/bin/nexus
+sudo tee /etc/systemd/system/nexus.service > /dev/null << EOL
+[Unit]
+Description=nexus service
+After=network.target
+
+[Service]
+Type=forking
+LimitNOFILE=65536
+User=nexus
+Group=nexus
+ExecStart=/app/nexus/bin/nexus start
+ExecStop=/app/nexus/bin/nexus stop
+User=nexus
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
+EOL
+sudo chkconfig nexus on
+sudo systemctl start nexus
+sudo systemctl enable nexus
+sudo systemctl status nexus
+)
+
+⦁	sh nexus.sh
+
+
+
+main server :
+
+⦁	 yum install git docker -y && systemctl start docker
+
+⦁	 vim jenkins.sh
+(
+sudo yum update –y
+sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+sudo yum upgrade
+sudo yum install java-17-amazon-corretto -y
+sudo yum install jenkins git -y
+sudo systemctl enable jenkins
+sudo systemctl start jenkins
+sudo systemctl status jenkins
+sudo mkdir -p /var/tmp_disk
+sudo chmod 1777 /var/tmp_disk
+sudo mount --bind /var/tmp_disk /tmp
+echo '/var/tmp_disk /tmp none bind 0 0' | sudo tee -a /etc/fstab
+sudo systemctl mask tmp.mount
+df -h /tmp
+sudo systemctl restart jenkins
+)
+
+⦁	 vim trivy.sh
+(
+wget https://github.com/aquasecurity/trivy/releases/download/v0.18.3/trivy_0.18.3_Linux-64bit.tar.gz
+tar zxvf trivy_0.18.3_Linux-64bit.tar.gz
+sudo mv trivy /usr/local/bin/
+)
+
+⦁	docker run -itd --name sonar-container -p 9000:9000 sonarqube:lts-community
+(create a container for sonarqube)
+
+
+
+⦁	create a pipeline
+ step 1 :
+
+	pipeline {
+        agent any 
+        stages {
+            stage ("clean work space") {
+                steps {
+                    cleanWs()
+                }
+            }
+        }
+        }
+
+	(To clear the WS and cache)
+
+
+
+ step 2:
+
+⦁	download Email Extenstion Template plugin in Jenkins
+⦁	Go to system in manage Jenkins
+⦁	go to last where we will see email notification
+   1. SMTP server: smtp.gmail.com
+   2. Default user e-mail suffix: (empty)or(no need)
+   3. Advanced :
+      1. Use SMTP Authentication
+         1. User Name: sattipavansainathreddy@gmail.com
+	 2. Password: sldf vwya ceqg ohxt (it is a app password which is created in google account)
+⦁	   2. tick the checkbox - use SSL
+⦁	   3. SMTP port : 465
+⦁	   4. Reply-To Address: sattipavan1999@gmail.com (or any random email)
+⦁	4. Tick the Test configuration by sending test e-mail to check if we given correct email or not
+⦁	   1. Test e-mail recipient : sattipavan1999@gmail.com
+⦁	   2. click test configuration
+⦁	go to the pipeline and write
+	pipeline {
+        agent any 
+        stages {
+            stage ("clean work space") {
+                steps {
+                    cleanWs()
+                }
+            }
+        }
+        post {
+            always {
+                mail to: 'sattipavan1999@gmail.com',
+                subject: 'pipeline status',
+                body: "${currentBuild.currentResult}:* Job ${env.JOB_NAME} \n build ${env.BUILD_NUMBER} \n More info at: ${env.BUILD_URL}"
+            }
+        }
+	}
+	(NOTE: these are the post build actions so we will not include in the stages)
+⦁	run the pipeline then we will see a email
+
+
+
+
+ step 3:
+
+⦁	get the git repo
+   
+   stage ("code") {
+                steps {
+                    git 'https://github.com/sattiPavan1999/dockerwebapp.git'
+                }
+            }
+
+
+
+
+step 4:
+
+⦁	build the code with maven tool so we will get target file
+   give 
+	tools {
+            maven 'mymaven'
+        }
+   and
+	stage ("build") {
+                steps {
+                    sh 'mvn clean package'
+                }
+            }
+
+
+
+
+
+step 5:
+
+⦁	next step is code quality analysis using snarqube
+⦁	go to SonarQube server
+   
+	stage('SonarQube Analysis') {
+                steps {
+                    withSonarQubeEnv('mysonar') {
+                      sh "mvn clean verify sonar:sonar -Dsonar.projectKey=project2-sq"
+                    }
+                }
+            }
+
+(NOte: create this script in SonarQube site)
+(
+NOTE:
+
+stage('SonarQube Analysis') {
+    def mvn = tool 'Default Maven';
+    withSonarQubeEnv() {
+      sh "${mvn}/bin/mvn clean verify sonar:sonar -Dsonar.projectKey=ss"
+    }
+  }
+
+This type of script it will give but we can modify this
+)
+
+
+go to plugins and download sonar scanner
+  then
+  GO to manage Jenkins
+  select credentials
+  select system then global credentials
+  add credentials
+    select secret text
+    give token in secret. we can create this in SonarQube page. Go to my account then security in SonarQube to create     	token (select global analysis token).
+  add something in ID and Description
+  create
+
+  go to manage Jenkins then system then SonarQube installation
+  give some name and SonarQube url and select authentication token
+  save
+
+
+  go to tools then SonarQube scanner
+  give some name
+  and save
+
+
+
+
+
+⦁	stage 6 :
+    
+    stage ("Quality Gates") {
+                steps {
+                    script {
+                        waitForQualityGate abortPipeline: false, credentialsId: 'sonar-ID'
+                    }
+                }
+            }
+
+
+	(NOTE: create "waitForQualityGate abortPipeline: false, credentialsId: 'sonar-ID'" using pipeline syntax)
+
+    
+    Go to sonarqube to setup webhook
+    Go to zomato and project settings and webhooks
+    create a webhook
+    give a name and url as jenkins url/sonarqube-webhook/ (http://43.205.136.121:8080/sonarqube-webhook/)
+    token is not mandatory
+    and now run the pipeline.
+
+
+
+
+⦁	 stage 7 :
+
+(It is for saving war file in nexus)
+
+nexus server:
+ go to settings on top
+ create a repository
+ select mavan2(hosted)
+ give some name
+ go below -> and select allow redeploy
+ create
+
+jenkins:
+download nexus artifact uploader
+go to pipeline jobs and create script using pipeline syntax
+select nexusArtifactUploader -> nexus3 -> url as nexus url -> credintials as nexus credintials
+and groupId, version, ArtifactId will be there in pom.xml file
+repository name is same as the one which is created in the nexus
+type: war
+classifier: (can be empty or not needed)
+file : target/vprofile-v2.war (target/war file)
+we will get war file in the following path cd /var/lib/jenkins/workspace/project2/target/
+(In the place of project2 there may be different name)
+
+
+we will get this type of script :
+
+ nexusArtifactUploader artifacts: [[artifactId: 'vprofile', classifier: '', file: 'target/vprofile-v2.war', type: 'war']], credentialsId: 'nexus-ID', groupId: 'com.visualpathit', nexusUrl: '3.110.91.115:8081', nexusVersion: 'nexus3', protocol: 'http', repository: 'mynexusrepo', version: 'v2'
+
+paste this in the pipeline stage
+
+
+
+
+stage ("Artifact") {
+                steps {
+                    nexusArtifactUploader artifacts: [[artifactId: 'vprofile', classifier: '', file: 'target/vprofile-v2.war', type: 'war']], credentialsId: 'nexus-ID', groupId: 'com.visualpathit', nexusUrl: '3.110.91.115:8081', nexusVersion: 'nexus3', protocol: 'http', repository: 'mynexusrepo', version: 'v2'
+                }
+            }
+
+
+
+
+
+
+
+
+
