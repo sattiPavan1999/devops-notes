@@ -302,6 +302,73 @@ stage ("Artifact") {
 
 
 
+⦁	stage 8 :
+(This stage is for creating images using docker)
+
+step 1: 
+
+we have to add this step (sh 'cp -r target Docker-app') after target file is created 
+because there is a docker file in the Docker-app folder in this project. when we are creating an image the target file should be in this folder so we are copying the target file to this folder.
+
+stage ("Build") {
+            steps {
+                sh 'mvn clean package'
+                sh 'cp -r target Docker-app'
+            }
+        }
+
+step 2:
+
+Go to server and give all perssions to this specific thing 
+chmod 777 /var/run/docker.sock
+And then add the below stage and run the pipeline
+
+
+stage ("App Image") {
+            steps {
+                sh 'docker build -t appimage Docker-app'
+                sh 'docker build -t dbimage Docker-db'
+            }
+        }
+
+we are creating images for both app and DB
+Then we can see images in server using "docker images" command.
+
+
+
+⦁	Stage 9:
+(Image Sanning)
+
+stage ("Image Scan") {
+            steps {
+                sh 'trivy image appimage'
+                sh 'trivy image dbimage'
+            }
+        }
+
+
+
+⦁	stage 10:
+(Deploy stage. Here we will create a container)
+
+
+stage ("Deploy") {
+            steps {
+                sh 'docker-compose up -d'
+            }
+        }
+
+
+
+
+NEW RELIC
+
+It is is monitoring tool
+
+new relic key : ad14d638993b6754fb47018053ce6363FFFFNRAL
+
+
+
 
 
 
