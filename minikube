@@ -37,3 +37,67 @@ MINIKUBE
        (so we need to move this to its default path)
     12 kubectl version
        (now we can see version)
+
+ 14  kubectl api-resources
+	(see the list of resources)
+
+IMPERATIVE WAY
+
+   15  kubectl run mypod --image=nginx
+	(To create a pod)
+	(We are giving image name)
+	(container will be there inside the pod)
+
+   16  kubectl get pods
+	(list of pods)
+
+DECLARATIVE WAY
+(means we have to create through a manifest file)
+
+   18  vim pod.yml
+	(
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-name1
+spec:
+  containers:
+    - name: pod-container1
+      image: shaikmustafa/cycle
+      ports:
+        - containerPort: 80
+
+	)
+
+(NOTE: we will get apiVersion, kind from the running of this command "kubectl api-resources")
+(NOTE: file should be in the form for .yml or .yaml format only)
+   
+   21  kubectl create -f pod.yml
+	(To create a pod)
+
+   22  kubectl get pods
+	(list of pods)
+
+   23  kubectl get pods -o wide
+	(To get the IP address of a pod)
+
+   24 kubectl get pods -o yaml
+	(To get all pods information in yaml format)
+
+   25 kubectl get pods pod-name1 -o yaml
+	(To get specific pod information)
+
+   26 kubectl get pods pod-name1 -o json
+	(To get specific pod information in json format)
+
+   27 kubectl describe pods pod-name1
+	(To get full information about a pod)
+
+   28 kubectl delete pod mypod
+	(It will delete the specific pod called mypod from pods)
+
+   29  kubectl delete pod --all
+	(It will delete all the pods)
+
