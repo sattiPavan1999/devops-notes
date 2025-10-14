@@ -1,0 +1,178 @@
+KOPS
+(Kubernates Operations)
+(Multi node cluster)
+(If you create the kubernates cluster using KOPS then automatically entire infrastructure will be created) 
+(here infra means servers, networking part, auto scaling, load banlancers, security group, etc.. everything)
+
+
+Suggestions:
+ * list clusters with: kops get cluster
+ * edit this cluster with: kops edit cluster mycluster.k8s.local
+ * edit your node instance group: kops edit ig --name=mycluster.k8s.local nodes-ap-south-1a
+ * edit your control-plane instance group: kops edit ig --name=mycluster.k8s.local control-plane-ap-south-1a
+
+Finally configure your cluster with: kops update cluster --name mycluster.k8s.local --yes --admin
+
+
+
+
+
+
+
+⦁	curl -Lo kops https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+⦁	chmod +x kops
+⦁	sudo mv kops /usr/local/bin/kops
+	(Install this in ec2 server)
+	(we can get this through official link https://kops.sigs.k8s.io/getting_started/install/)
+⦁	kops version
+	(know if it is installed or not)
+
+
+⦁	aws s3 mb s3://mybucket1.flm
+	(Here the s3 bucket name should be unique)
+	(before doing this s3 and ec2 are different users. so both wont communicate by default. update IAM to ec2 then both 	will communicate)
+⦁	aws s3 ls
+	(list of s3 buckets)
+⦁	export KOPS_STATE_STORE=s3://mybucket1.flm
+	(we are specifying that the cluster information should be saved in this "mybucket1.flm" bucket)
+
+
+⦁	kops create cluster --name mycluster.k8s.local --zones=ap-south-1a,ap-south-1b --master-count=1 --master-size=c7i-flex.large --master-volume-size=30 --node-count=2 --node-size=t3.micro --node-volume-size=20 --image=ami-02d26659fd82cf299
+(NOTE: the master node count should be a odd number)
+(NOTE: image ID we will get from aws, select the region and click create or launch instance and select the ubuntu and below we will get the ID and we have copy and paste that in the above command)
+(we have to select the image ID where we are creating zones in this command)
+
+(This is confidential information so we will store this in s3 bucket)
+
+
+⦁	kops update cluster --name mycluster.k8s.local --yes --admin
+
+⦁	kubectl get nodes
+	(Get list of nodes)
+	(we can see total 3 nodes. one is control-plane and two are nodes)
+
+LABELS
+(used to organize k8s objects such as pods, nodes, etc.)
+(used to filter)
+(can add multiple lables to k8s objects)
+(It is a key-value pairs)
+
+
+   58  vim pod.yml
+  	(
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod1
+spec:
+  containers:
+    - name: mypodcontainer1
+      image: shaikmustafa/cycle
+      ports:
+        - containerPort: 80
+
+
+	)
+
+   57  kubectl create -f pod.yml
+	(create a pod)
+   60  kubectl get pods
+   61  kubectl describe pod mypod1
+   62  kubectl get pods --show-labels
+	(used to get all the pods with labels)
+
+
+   64  vim pod.yml
+(
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod2
+  labels:
+    env: dev
+    app: swiggy
+    client: tcs
+spec:
+  containers:
+    - name: mypodcontainer1
+      image: shaikmustafa/cycle
+      ports:
+        - containerPort: 80
+
+
+)
+   65  kubectl create -f pod.yml
+   68  kubectl get pods
+	(we get all the pods)
+   69  kubectl get pods --show-labels
+	(Now we get all the pods. 2nd pod contains labels)
+
+
+
+EQUALITY BASED SELECTOR (=)
+
+70  kubectl label pod mypod1 "client=infosys"  
+	(If you want to give label to existing pod)
+
+   71  kubectl label pod mypod1 env=test env2=qa
+	(To give multiple labels at a time)
+
+72 kubectl get pod -l app=swiggy
+	(To get the pod which label matched wih app=swiggy)
+
+73  kubectl get pod -l app!=swiggy
+	(To get the pod which label dosn't matched wih app=swiggy)
+
+
+
+SET BASED SELECTOR (=)
+
+74  kubectl get pod -l 'env in (dev, test)'
+	(To get the pod which label matched wih env=dev, test)	
+
+
+
+NODE SELECTOR
+
+
+   80  kubectl get nodes
+	(get list of nodes)
+   81  kubectl label node i-03c27903112e6f859 node=node2
+	(assign a label to this node)
+   
+   83  kubectl get nodes --show-labels | grep -i "node=node2"
+	(check the node if it has the assigned label or not)
+   
+   85  vim pod.yml
+(
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod3
+  labels:
+    env: dev
+    app: swiggy
+    client: tcs
+spec:
+  nodeSelector:
+    node: node2
+  containers:
+    - name: mypodcontainer1
+      image: shaikmustafa/cycle
+      ports:
+        - containerPort: 80
+
+)
+
+(we are spacifying the pod to be created in a specific node which matched with label "node: node2")
+
+   86  kubectl create -f pod.yml
+	(create a pod)
+
+   87  kubectl get pods -o wide
+	(we get the pod is created in which node)
