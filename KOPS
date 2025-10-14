@@ -14,7 +14,7 @@ Suggestions:
 Finally configure your cluster with: kops update cluster --name mycluster.k8s.local --yes --admin
 
 
-
+NOTE: delete the cluster through command because we created through command
 
 
 
@@ -176,3 +176,6 @@ spec:
 
    87  kubectl get pods -o wide
 	(we get the pod is created in which node)
+
+
+NOTE: delete the cluster through command because we created through command
