@@ -179,3 +179,11 @@ spec:
 
 
 NOTE: delete the cluster through command because we created through command
+(run the below commands to delete the cluster)
+
+90  export KOPS_STATE_STORE=s3://mybucket1.flm
+92  kops get cluster
+	(get cluster name)
+93  kops delete cluster --name mycluster.k8s.local --yes
+	(delete command for cluster)
+
