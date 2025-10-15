@@ -1,0 +1,250 @@
+
+    
+There are different types of objects in k8s
+Pod, service, deployment, replication, etc…
+
+Pods can be created in two ways. They are imperative and declarative
+
+
+SERVICES
+* Service is a method for exposing pods in a cluster
+* There are three types of services ClusterIP, NodePort, LoadBalancer
+    1  curl -Lo kops https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+    2  chmod +x kops
+    3  sudo mv kops /usr/local/bin/kops
+        (kops installation command from official link)
+
+    4     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        (kubectl installation command from official link)
+
+    5  chmod +x kubectl
+        (give x permissions to kubectl)
+    6  mv kubectl /usr/local/bin/
+        (move that to this path)
+
+    7  kubectl version
+    8  kops version
+
+    9  aws s3 ls
+        (check the list of s3 buckets)
+
+   10  export KOPS_STATE_STORE=s3://mybucket1.flm
+        (connect to s3 bucket)
+
+   11  kops create cluster --name mycluster.k8s.local --zones=ap-south-1a,ap-south-1b --master-count=1 --master-size=c7i-flex.large --master-volume-size=30 --node-count=2 --node-size=t3.micro --node-volume-size=20 --image=ami-02d26659fd82cf299
+        (create a cluster)
+
+   12  kops update cluster --name mycluster.k8s.local --yes --admin
+
+    
+    kubectl get nodes
+        (we see total 3)
+
+    vim pod.yml
+(
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod1
+  labels:
+    app: bus-app
+spec:
+  containers:
+    - name: mycontainer1
+      image: shaikmustafa/paytm:bus
+      ports:
+        - containerPort: 80
+
+)
+
+    kubectl create -f pod.yml
+        (create a pod)
+
+    kubectl get pods
+        (list of pods)
+
+    vim pod.yml
+(
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod2
+  labels:
+    app: movie-app
+spec:
+  containers:
+    - name: mycontainer2
+      image: shaikmustafa/paytm:movie
+      ports:
+        - containerPort: 80
+)
+
+    kubectl create -f pod.yml
+        (create a another pod)
+
+    kubectl get pods
+        (list of pods)
+
+    vim pod.yml
+(
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod3
+  labels:
+    app: cycle-app
+spec:
+  containers:
+    - name: mycontainer3
+      image: shaikmustafa/cycle
+      ports:
+        - containerPort: 80
+)
+
+    kubectl create -f pod.yml
+        (create a another pod)
+
+    kubectl get pods
+        (list of pods)
+
+    kubectl get pods --show-labels
+        (get all the pods including their labels)
+
+
+ClusterIP
+
+
+   10  kubectl api-resources | grep -i "services"
+   
+   15  vim service.yml
+(
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myservice1
+spec:
+  type: ClusterIP
+  selector:
+    app: movie-app
+  ports:
+    - port: 80 # this is service port
+      targetPort: 80 # this is container port
+)
+
+(we can get apiVersion, kind from above command)
+(selector means selecting the pod with the matching label "movie-app")
+
+
+   20  kubectl create -f service.yml
+        (create a service)
+   21  kubectl get services
+        (list of services)
+   22  kubectl describe service myservice1
+        (get full information about specific service)
+
+(NOTE: It is CLusterIP so it is used for internal purpose only.
+We will get stable IP address for ClusterIP.
+connect to other aws node and give this commad to access 
+we can able to access in other server inside the cluster only.
+
+curl stable-IP-address
+example: curl 100.69.204.90
+we will get this by describing the service)
+
+
+
+
+NodePort
+
+
+
+vim service.yml
+(
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myservice2
+spec:
+  type: NodePort
+  selector:
+    app: bus-app
+  ports:
+    - port: 80 # this is service port
+      targetPort: 80 # this is container port
+)
+
+kubectl create -f service.yml
+(create an another service)
+
+kubectl get services
+(
+we will get like this
+NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+kubernetes   ClusterIP   100.64.0.1      <none>        443/TCP        93m
+myservice1   ClusterIP   100.69.204.90   <none>        80/TCP         13m
+myservice2   NodePort    100.67.23.81    <none>        80:32027/TCP   8s
+
+here 32027 is the node port. It is created bydefault
+If you want to specify required NodePort we can do it in vim service.yml
+WIth this nodePort, we can access application internally as well as externally
+for internal purpose we use CLUSTER-IP. 
+for external purpose do this server public-IP:NodePort but we can't access the application in browser because of default security groups. delete all the security groups in that node and add new security group with all traffic and reload the page to view the app
+)
+
+
+
+
+LOAD BALANCER
+
+
+* LoadBalancer provies stable IP address, NodePort, DNS name
+* If there are 3 nodes, and if it got 300 requests then LoadBalancer distribues 100 requests for each node.
+* And we can access through DNS name
+* In this case, a9be044ac2a164c8385d7dffa5cb737f-1092136875.ap-south-1.elb.amazonaws.com is the DNS name. we can access directly through this but it may take upto 2 mins to access through this initially. And 30105 is the NodePort. * If we access through node port then all the requests will go into one server. So using DNS is better.
+
+
+vim service.yml
+(
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myservice3
+spec:
+  type: LoadBalancer
+  selector:
+    app: cycle-app
+  ports:
+    - port: 80 # this is service port
+      targetPort: 80 # this is container port
+)
+
+kubectl create -f service.yml
+(create an another service)
+
+kubectl get services
+(
+we will get like this 
+NAME         TYPE           CLUSTER-IP      EXTERNAL-IP                                                                PORT(S)        AGE
+kubernetes   ClusterIP      100.64.0.1      <none>                                                                     443/TCP        117m
+myservice1   ClusterIP      100.69.204.90   <none>                                                                     80/TCP         37m
+myservice2   NodePort       100.67.23.81    <none>                                                                     80:32027/TCP   23m
+myservice3   LoadBalancer   100.65.172.84   a9be044ac2a164c8385d7dffa5cb737f-1092136875.ap-south-1.elb.amazonaws.com   80:30105/TCP   6m8s
+)
+
+kubectl delete service myservice3
+    (To delete the specific service)
+    (Now we can't able to access the application because service is deleted)
+
+kubectl delete service --all
+    (To deleted all the services at a time)
+
+
