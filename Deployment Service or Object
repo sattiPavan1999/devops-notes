@@ -1,0 +1,286 @@
+Deployment Service/Object
+
+
+
+Pods —> containers
+ReplicaSet —> Pods —> containers
+Deployment —>  ReplicaSet —> Pods —> containers
+
+
+Features of Deployment
+* No downtime
+* We can update the image
+* There is a auto scaling and manual scaling as well
+* Roll back feature is available
+
+
+
+    
+
+    2  curl -Lo kops https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+    3  chmod +x kops
+    4  sudo mv kops /usr/local/bin/kops
+    5     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    10  chmod +x kubectl
+    11  mv kubectl /usr/local/bin/
+
+    (Install both kops and kubectl)
+
+   
+
+    1  aws s3 ls
+           (list of s3 buckets)
+
+    6  export KOPS_STATE_STORE=s3://mybucket1.flm
+
+    7  kops create cluster --name mycluster.k8s.local --zones=ap-south-1a,ap-south-1b --master-count=1 --master-size=c7i-flex.large --master-volume-size=30 --node-count=2 --node-size=t3.micro --node-volume-size=20 --image=ami-02d26659fd82cf299
+        (create a cluster)
+
+    8  kops update cluster --name mycluster.k8s.local --yes --admin
+
+    9  kubectl get nodes
+        (list of nodes)
+
+   13  vim deployment.yml
+(
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: zomato
+  template:
+    metadata:
+      labels:
+        app: zomato
+    spec:
+      containers:
+        - name: mycontainer1
+          image: shaikmustafa/cycle
+          ports:
+            - containerPort: 80
+
+)
+   14  kubectl create -f deployment.yml
+        (create deployment)
+
+   15  kubectl get deploy
+        (list of deploys)
+
+   16  kubectl get rs
+        (list of replicaSets)
+   17  kubectl get pods
+        (list of pods)
+
+   18  vim service.yml
+(
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myservice1
+spec:
+  type: LoadBalancer
+  selector:
+    app: zomato
+  ports:
+    - port: 80
+      targetPort: 80
+
+)
+   19  kubectl create -f service.yml
+        (create a service to expose the port)
+
+   20  kubectl get service
+        (list of services)
+
+   25  kubectl get pods
+
+   26  kubectl delete pod deploy-1-779cbbbdb8-92nwj
+        (delete a specific pod and it will create new pod again)
+   27  kubectl get pods
+
+   28  kubectl scale deploy deploy-1 --replicas=6
+        (we can scale up or down using this command)
+   29  kubectl get deploy
+   30  kubectl get pods
+   31  kubectl scale deploy deploy-1 --replicas=2
+   32  kubectl get pods
+   
+
+
+UPDATE IMAGE
+(there is no downtime in deploy)
+
+
+* through manifest file
+
+   35  vim deployment.yml 
+(
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: zomato
+  template:
+    metadata:
+      labels:
+        app: zomato
+    spec:
+      containers:
+        - name: mycontainer1
+          image: shaikmustafa/dm
+          ports:
+            - containerPort: 80
+)
+(here change image to shaikmustafa/dm)
+
+   36  kubectl apply -f deployment.yml
+        (apply the update)
+
+
+
+* through command
+
+   37  kubectl set image deployment deploy-1 mycontainer1=shaikmustafa/paytm:bus
+        ((here change image to shaikmustafa/bus))
+
+   38  kubectl rollout status deploy deploy-1
+        (to check wether the update is successful or not)
+
+
+ROLLBACK
+
+   42  kubectl rollout undo deploy deploy-1 --to-revision=1
+        (command to rollback to version 1)
+
+   43  kubectl rollout status deploy deploy-1
+        (to check wether the update is successful or not)
+
+   44  kubectl get rs
+        (list of rs)
+
+   45  kubectl rollout history deploy deploy-1
+        (history of rollback of specific deploy)
+
+   46  kubectl rollout undo deploy deploy-1 --to-revision=3
+        (command to rollback to version 3)
+
+   47  kubectl rollout status deploy deploy-1
+        (to check wether the update is successful or not)
+
+   48  kubectl rollout history deploy deploy-1
+        (history of rollback of specific deploy)
+
+   49  kubectl get rs
+        (list of rs)
+
+
+To add an anotation :
+   
+   53  kubectl set image deployment deploy-1 mycontainer1=shaikmustafa/paytm:movie
+        (update the image)
+   54  kubectl annotate deploy deploy-1 kubernetes.io/change-cause="image is updated"
+        (add annotation with specific message)
+   55  kubectl rollout history deploy deploy-1
+        (see the history)
+        (we can see the annotation message for latest version)
+
+
+AUTO SCALING
+
+* we need to install metric server tool, to see how much of cpu is utilized by the pod. so auto scaling will be done accoroding to that utilization.
+(NOTE: hpa full form horizonal pod autoscaler)
+
+   57  kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+        (install metric server tool)
+
+   60  kubectl api-resources | grep -i "hpa"
+        (get the apiVersion, kind for hpa)
+
+   58  vim hpa.yml
+(
+---
+apiVersion: autoscaling/v2
+kind:  HorizontalPodAutoscaler
+metadata:
+  name: myhpa1
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: deploy-1
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+)
+
+   62  kubectl create -f hpa.yml
+        (create hpa)
+
+   63  kubectl get hpa
+        (list of hpa)
+   64  kubectl get pods
+        (list of pods)
+
+
+* we can test the dummy load by giving stress to specific pod. so new pods will be created according to to auto scaling
+
+kubectl get pods
+(list of pods)
+
+kubectl exec -it deploy-1-5579c94f9-vrcww -- bash
+(Go into the specific pod)
+
+apt update -y
+(update the ubuntu server)
+
+apt install stress -y
+(install stress)
+
+* Now connect to two more servers from same ec2 server
+  so one is in main terminal and two are other terminals to watch the pods
+
+in other terminals
+In one terminal:
+    kubectl get pods
+    (list of pods)
+
+In second terminal:
+    kubectl get pods -w
+    (list of pods)
+    (w means watch)
+    (we can see pods will be created in live)
+
+In main terminal:
+    stress -c 2 -t 300 -v
+    (run this command)
+   
+    control + c 
+    (to stop giving stress)
+
+
+NOTE: delete the cluster through command because we created through command
+(run the below commands to delete the cluster)
+
+90  export KOPS_STATE_STORE=s3://mybucket1.flm
+92  kops get cluster
+	(get cluster name)
+93  kops delete cluster --name mycluster.k8s.local --yes
+	(delete command for cluster)
+
