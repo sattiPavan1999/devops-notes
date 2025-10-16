@@ -1,0 +1,147 @@
+
+Statefulset and DaemonSet
+
+* statefulSet is used to deploy database
+* statefulSet is an object
+* There are two components
+1. Deployment : used to deploy application
+2. StatefulSet : used to deploy database
+
+* There are two types
+1. StateLess (Cannot store past data)
+Ex: Deployment
+2. StateFull (will store past data)
+Ex: StatefullSet
+
+* There are two types of Pods in StatefullSet
+1. Primary (Cantains read and write permissions)
+2. Secondary (contains only read permission)
+
+
+
+
+Statefulset
+
+   76  cp deployment.yml statefulset.yml
+        (copy the data from deployment.yml to statefulset.yml)
+   77  vim statefulset.yml 
+(
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: deploy-1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: zomato
+  template:
+    metadata:
+      labels:
+        app: zomato
+    spec:
+      containers:
+        - name: mycontainer1
+          image: shaikmustafa/dm
+          ports:
+            - containerPort: 80
+)
+
+   78  kubectl create -f statefulset.yml 
+        (create statefulset)
+   79  kubectl get statefulset
+        (list of statefulset)
+   80  kubectl get pod
+        (list od pods)
+     
+   82  kubectl scale statefulset deploy-1 --replicas=6
+        (scale up)
+   83  kubectl get pod
+   84  kubectl scale statefulset deploy-1 --replicas=2
+        (scale down)
+   85  kubectl get pod
+
+
+DaemonSet
+
+* DaemonSet is used to create an agent on each worker node
+* DaemonSet is going create a POD in each worker node
+* No replicas for DaemonSet
+* To get data like pod cpu utilisation, memory utilisation, no of requests , etc..
+* To get log information, to run script also we use DaemonSet
+
+  
+   91  cp statefulset.yml daemonset.yml
+		(copy the data from statefulset.yml to daemonset.yml)
+
+   92  vim daemonset.yml 
+(
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: mydaemon1
+spec:
+  selector:
+    matchLabels:
+      app: zomato
+  template:
+    metadata:
+      labels:
+        app: zomato
+    spec:
+      containers:
+        - name: mycontainer1
+          image: shaikmustafa/dm
+          ports:
+            - containerPort: 80
+)
+(There will be no replicas in DaemonSet)
+
+   93  kubectl create -f daemonset.yml 
+	 (create a daemonset)
+
+   94  kubectl get ds
+	  (list of daemonset)
+
+   95  kubectl get po -o wide
+	  (get list of pods)
+	  (here we get all the pods including statefulset pods)
+
+   96  kubectl delete statefulset deploy-1
+		(delete statefullset pods)
+
+   97  kubectl get po -o wide
+	   (Now we can see only pods related to daemonset)
+
+ 100  kops edit ig --name=mycluster.k8s.local nodes-ap-south-1a
+	(we can get this command from suggestions that we got when we created cluster) (
+maxSize: 2
+minSize: 2
+)	
+(Change this to get 1 more server created)
+
+  101  kops edit ig --name=mycluster.k8s.local nodes-ap-south-1b
+	(we can get this command from suggestions that we got when we created cluster) (
+maxSize: 2
+minSize: 2
+)	
+(Change this to get 1 more server created)
+
+  102  kops update cluster --name mycluster.k8s.local --yes --admin
+	(Update the cluster so two new nodes will be created)
+
+
+kubectl get nodes
+(we can see two more worker nodes)
+
+On summary:
+* Every component has its own features
+
+1. Deployment :
+    * Auto scaling, rollback, no downtime
+2. StatefulSet :
+    * New POD will be created by cloning the old POD
+3. DaemonSet :
+    * In every node, one pod will be created
