@@ -1,0 +1,302 @@
+
+REPLICATION AND SCALEING
+
+* two types of scalling. manual and auto scaleing
+* two objects for replication, replicationController and replicaSet
+* There is no auto scaling for replicationController
+* replicationController supports only manual scalling
+* replicationController is the old version of k8s object
+* replicaSet is the new version of k8s object
+* replicationController works on Equality based selector
+* replicationSet works on Set based selector (means we can give multiple lables)
+
+DRAWBACKS of replicationController and ReplicaSet
+* no autoscaling
+* downtime
+* can't update the image directly
+* no rollback
+
+(Because of these drawbacks we use deployment service in real time)
+
+
+    1  curl -Lo kops https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+    2  chmod +x kops
+    3  sudo mv kops /usr/local/bin/kops
+        (kops installation command from official link)
+
+    4     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        (kubectl installation command from official link)
+
+    5  chmod +x kubectl
+        (give x permissions to kubectl)
+    6  mv kubectl /usr/local/bin/
+        (move that to this path)
+
+    7  kubectl version
+    8  kops version
+
+
+   46  aws s3 ls
+   47  export KOPS_STATE_STORE=s3://mybucket1.flm
+
+   48  kops create cluster --name mycluster.k8s.local --zones=ap-south-1a,ap-south-1b --master-count=1 --master-size=c7i-flex.large --master-volume-size=30 --node-count=2 --node-size=t3.micro --node-volume-size=20 --image=ami-02d26659fd82cf299
+
+   49  kops update cluster --name mycluster.k8s.local --yes --admin
+
+   50  kubectl get nodes
+
+   51  vim rc.yml
+(
+
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: rc-1
+spec:
+  replicas: 3
+  selector:
+    app: swiggy
+  template:
+    metadata:
+      labels:
+        app: swiggy
+    spec:
+      containers:
+        - name: mycontainer1
+          image: shaikmustafa/dm
+          ports:
+            - containerPort: 80
+
+)
+(Here we are creating a ReplicationController)
+(ReplicationController will create a POD and a POD will create a Container inside of a POD)
+(selector means selecting a label)
+(When a POD is deleted then new POD should be created, SO for this we have to match the label names, so we are giving label in side template for a ReplicationController)
+(replicas: 3 means, 3 pods will be created by ReplicationController)
+
+
+   54  kubectl create -f rc.yml
+        (create a ReplicationController)
+   55  kubectl get rc
+        (list of ReplicationControllers)
+   56  kubectl describe rc rc-1
+        (get information about specific ReplicationController)
+   57  kubectl get pods
+        (list of pods)
+   58  kubectl get pods --show-labels
+        (list of pods with labels)
+   59  vim service.yml
+(
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myservice1
+spec:
+  type: LoadBalancer
+  selector:
+    app: swiggy
+  ports:
+    - port: 80
+      targetPort: 80
+)
+
+   60  kubectl create -f service.yml
+        (create a LoadBalancer service)
+
+   61  kubectl get services
+        (get list of services)
+        (access the container with DNS name, but initially it may take some time to access the application in the browser)
+        (It should be http)
+
+
+SCALING
+1. MANUAL SCALING (through manifest file)
+
+vim rc.yml
+(
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: rc-1
+spec:
+  replicas: 5
+  selector:
+    app: swiggy
+  template:
+    metadata:
+      labels:
+        app: swiggy
+    spec:
+      containers:
+        - name: mycontainer1
+          image: shaikmustafa/dm
+          ports:
+            - containerPort: 80
+)
+(Update the replicas in this)
+(and apply below command)
+
+kubectl apply -f rc.yml
+(to apply manual scalling)
+
+kubectl get pods
+(list of pods)
+(Now we will see 5 pods)
+
+
+
+vim rc.yml
+(
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: rc-1
+spec:
+  replicas: 2
+  selector:
+    app: swiggy
+  template:
+    metadata:
+      labels:
+        app: swiggy
+    spec:
+      containers:
+        - name: mycontainer1
+          image: shaikmustafa/dm
+          ports:
+            - containerPort: 80
+)
+(Update the replicas in this)
+(and apply below command)
+
+kubectl apply -f rc.yml
+(to apply manual scalling)
+
+kubectl get pods
+(list of pods)
+(Now we will see 2 pods)
+
+
+   69  kubectl get pod
+        (get list of pods)
+        (here we get 2 pods acc to above changes)
+   70  kubectl delete pod rc-1-srz84
+        (delete the specific pod)
+   71  kubectl get pod
+        (get list of pods)
+        (here we see 2 pods again. New pod is created here because there are 2 replicas in above exapmle)
+   72  kubectl delete pod --all
+        (delete all the pods)
+   73  kubectl get pod
+        (we still see 2 pods)
+   
+
+MANUAL SCALING (through command)
+
+   75  kubectl scale rc rc-1 --replicas=6
+   76  kubectl get pods
+        (we see 6 pods)
+   77  kubectl scale rc rc-1 --replicas=3
+   78  kubectl get pods
+        (we see 3 pods)
+
+kubectl delete rc rc-1
+(to delete a specific ReplicationController)
+(so we can't access the application after deleting the ReplicationController because it deletes the pods)
+
+
+
+
+RelicationSet
+
+   84  kubectl api-resources | grep -i "rs"
+
+   85  vim rs.yml
+(
+
+---
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: rs-2
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: swiggy
+  template:
+    metadata:
+      labels:
+        app: swiggy
+    spec:
+      containers:
+        - name: mycontainer1
+          image: shaikmustafa/dm
+          ports:
+            - containerPort: 80
+
+)
+(apiVersion, kind we get from above command)
+
+   86  kubectl delete rc rc-1
+        (delete existing rc from clearing confusion)
+
+   87  kubectl create -f rs.yml
+           (create a ReplicaSet)
+
+
+
+   92  kubectl get rs
+   93  kubectl get pods
+   94  kubectl delete pod rs-2-rkthz
+   95  kubectl get pods
+   96  kubectl scale rs rs-2 --replicas=5
+   97  kubectl get pods
+   98  kubectl scale rs rs-2 --replicas=3
+   99  kubectl get pods
+(All the above commands are for scaling, deleting the pods of ReplicaSet. It is same as RC)
+
+
+
+
+DEPLOYMENT
+
+cp rs.yml deployment.yml
+(copy the content from rs.yml to deployment.yml)
+
+vim deployment.yml 
+(
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: swiggy
+  template:
+    metadata:
+      labels:
+        app: swiggy
+    spec:
+      containers:
+        - name: mycontainer1
+          image: shaikmustafa/dm
+          ports:
+            - containerPort: 80
+)
+(It is almost same as RS)
+(kind should be changed)
+(name is optional to change)
+
+
+kubectl create -f deployment.yml
+(create this service)
+
+kubectl get deploy
+(list of deploys)
+

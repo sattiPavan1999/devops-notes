@@ -1,0 +1,708 @@
+ DOCKER
+
+sudo -i
+
+yum install docker -y && systemctl start docker
+
+docker images
+(To see list of images)
+
+docker ps
+(To see the containers)
+
+touch pavan.txt
+
+vim Dockerfile
+(
+1.
+FROM ubuntu
+MAINTAINER name pavan
+LABEL this is my first dockerfile
+COPY sai.txt .
+(Syntax: copy source destination)
+
+2.
+FROM ubuntu
+MAINTAINER name pavan
+LABEL this is my first dockerfile
+ADD https://dlcdn.apache.org/airflow/KEYS /opt
+)
+
+
+docker build -t myfirstimage .
+(To build an image)
+
+docker run -itd --name NAMEOFACONTAINER IMAGEID/IMAGENAME
+(To create a container)
+
+docker exec -it NAMEOFACONTAINER bash
+(To go inside the container)
+
+
+
+
+
+
+docker build -t mythirdimage:tag1 .
+(We are giving tags also here with existing image name)
+
+vim Dockerfile
+(
+FROM ubuntu
+MAINTAINER name pavan
+LABEL this is my first dockerfile
+ADD https://dlcdn.apache.org/airflow/KEYS .
+WORKDIR /pavan/folder/
+COPY pavan.txt .
+)
+(Pavan.txt will be saved in our defined path but internet file will be saved in default path)
+
+docker run -itd --name container-4 mythirdimage:tag1
+
+
+
+
+vim Dockerfile
+(
+FROM ubuntu
+MAINTAINER name pavan
+LABEL this is my first dockerfile
+ADD https://dlcdn.apache.org/airflow/KEYS .
+WORKDIR /pavan/folder/
+COPY pavan.txt .
+RUN touch newfile.txt
+RUN apt update -y
+RUN apt install git -y
+CMD apt install maven -y
+)
+(RUN commands will run only when we are building the image)
+(CMD command will run only when we are building the Container.
+We can see the logs with this command
+docker run --name CONTAINERNAME IMAGEID/IMAGENAME)
+
+
+
+docker ps -a (get all the containers which are active and exited or down containers)
+
+
+vim Dockerfile
+(
+FROM ubuntu
+MAINTAINER name pavan
+LABEL this is my first dockerfile
+ADD https://dlcdn.apache.org/airflow/KEYS .
+WORKDIR /pavan/folder/
+COPY pavan.txt .
+RUN touch newfile.txt
+RUN apt update -y
+RUN apt install tree -y
+ENTRYPOINT ["apt", "install", "-y"]
+CMD ["docker.io"]
+)
+(Entrypoint is constant, but CMD value can vary)
+
+
+
+
+vim Dockerfile
+(
+FROM ubuntu
+MAINTAINER name pavan
+LABEL this is my first dockerfile
+ADD https://dlcdn.apache.org/airflow/KEYS .
+WORKDIR /pavan/folder/
+COPY pavan.txt .
+RUN touch newfile.txt
+RUN apt update -y
+RUN apt install tree -y
+ENTRYPOINT ["apt", "install", “git”, "-y"]
+CMD ["docker.io"]
+)
+(In this case only git is installed in container because ENTRYPOINT is the first priority)
+
+
+
+
+vim Dockerfile
+(
+FROM ubuntu
+MAINTAINER name pavan
+LABEL this is my first dockerfile
+ADD https://dlcdn.apache.org/airflow/KEYS .
+WORKDIR /pavan/folder/
+COPY pavan.txt .
+RUN touch newfile.txt
+EXPOSE 80
+ENV name=raviteja
+ARG course=devops
+RUN echo "hello $name, are you learning $course"
+)
+
+(We can access the ENV values, but not ARG values in the container)
+
+printenv
+(Used to see env values or variable in the container)
+
+
+
+
+
+
+
+
+
+
+vim Dockerfile
+(
+FROM httpd
+MAINTAINER name pavan
+LABEL THIS IS MY HTML FILE
+EXPOSE 80
+COPY . /usr/local/apache2/htdocs/
+)
+
+docker build -t image-1:v1 .
+
+docker run -itd --name container-1 -p 1234:80 image-1:v1
+
+
+
+
+
+yum install git -y
+
+git clone https://github.com/sattiPavan1999/one.git
+
+cd one
+
+git checkout master
+
+rm -rf Dockerfile script.js  styles.css  tomcat-users.xml
+
+vim maven.sh
+
+Install maven on server
+
+* sudo yum install java-17-amazon-corretto -y
+* cd /opt
+* wget https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.tar.gz
+* sudo tar -xzf apache-maven-3.9.11-bin.tar.gz
+* sudo mv apache-maven-3.9.11 maven
+* echo 'export M2_HOME=/opt/maven' | sudo tee -a /etc/profile.d/maven.sh
+* echo 'export PATH=${M2_HOME}/bin:${PATH}' | sudo tee -a /etc/profile.d/maven.sh
+* sudo chmod +x /etc/profile.d/maven.sh
+* source /etc/profile.d/maven.sh
+* mvn -version
+* mvn clean package
+
+sh maven.sh
+
+mvn -v
+
+
+vim Dockerfile
+(
+FROM tomcat:8.0.20-jre8
+EXPOSE 8080
+COPY tomcat-users.xml /usr/local/tomcat/conf/
+COPY target/*.war /usr/local/tomcat/webapps/
+)
+
+
+docker build -t image-2:v2 .
+
+docker run -itd --name container-4 -p 1133:8080 image-2:v2
+
+
+
+
+
+FOR MYSQL
+
+
+
+vim Dockerfile
+(
+FROM mysql/mysql-server:5.7
+ENV MYSQL_ROOT_PASSWORD=admin@123
+ENV MYSQL_USER=root
+EXPOSE 3306
+)
+
+docker build -t db-image:v1 .
+
+docker run -d --name container-db -p 1432:3306 db-image:v1
+
+docker exec -it container-db-1 bash
+
+mysql -u root -p
+(If you want to go inside database)
+
+
+
+
+
+
+Push the image to docker hub
+
+
+
+docker login
+
+Username: pavanreddy1999
+Password: Sattipavan@143
+
+docker images
+
+docker tag image-2:v2 pavanreddy1999/myfirstimagerepo:tag1
+
+docker push pavanreddy1999/myfirstimagerepo:tag1
+
+
+
+
+
+docker pull pavanreddy1999/myfirstimagerepo:tag1
+(If you want to use this image)
+
+
+
+
+
+To decrease the size of the image is  1. Multistage docker
+2. Instead of using multiple run use single RUN  (Ex. RUN yum install git maven tree -y && npm install)
+3. Using .dockerignore (If there are 100 file and we want only 90 files to be sent into container then we can place those 10 files in .dockerignore)
+
+
+
+Node application along with multistaging
+
+vim Dockerfile(
+
+FROM node:19-alpine AS stage-1
+WORKDIR /flm
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 80
+
+FROM stage-1 AS stage-2
+RUN npm install --production
+COPY . .
+CMD ["node", "index.js"]
+
+) (2 stages are there so we can see less size for the image)
+
+docker build -t image:v2 .
+
+docker run -itd --name mycontainer2 -p 1001:80 image:v2
+
+
+
+
+trivy 
+Install trivy
+
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.41.0
+
+trivy -v
+(Check version)
+
+trivy image firstimage:v2
+(Scan image)
+
+docker rmi firstimage:v3
+(TO REMOVE IMAGE)
+
+docker stop container1
+(TO STOP THE CONTAINER)
+
+docker rm conatiner1
+(TO REMOVE THE CONTAINER)
+
+docker rmi firstimage:v2
+(AFTER REMOVING THE CONTAINER ONLY WE CAN REMOVE THE REFERENCED IMAGE)
+
+docker system df
+(TO CHECK THE CACHE SIZE OCCUPIED)
+
+docker system prune
+(TO CLEAR ALL THE MEMORY IN CACHE)
+
+
+Because of choosing the right image, we can get very few vulnerabilities.
+If we take wrong image, we will get so many vulnerabilities
+Alpine images are very safe and secure and light weight also
+
+
+We can search for a specific issue that we got from trivy scan of images
+https://avd.aquasec.com/
+We can copy the id from trivy and search for it in this aquasec database website
+
+
+trivy image image:v1 >> report.txt
+(We can create a report of these vulnerabilities and share this to developers)
+
+trivy image pavanreddy1999/myfirstimagerepo:tag1
+(We can scan for a image which is in docker hub)
+
+
+
+
+Networks
+
+docker inspect container1
+(If you want to know the full information about the container like ip-address, etc…)
+
+Every ip address  will be created sequentially 
+We will get three types networks like bridge, host, none by default
+
+Bridge network
+Whenever we create a container in docker then this container is created on this bridge network because the default network is bridge.
+
+Host network
+The container will get the ip address from the host (in our case the host is ec2)
+
+docker run -itd --name container3 -p 1133:80 --network host nginx
+(We are specifying the network should be in host network and nginx is the image)
+(If we inspect this container we will not see any ip address because it is same as host )
+(If we try to access through	 the host ip address we can access the nginx application)
+
+None network
+
+docker run -itd --name container4 -p 1144:80 --network none nginx
+
+(If we inspect this container we will not see any ip address because it is a none network )
+(If we try to access through	 the host ip address we can’t access the nginx application because it is none network)
+
+
+
+docker run -itd --name container1 -p 1234:80 nginx
+(Bridge network)
+(We can access through ip-address:1234)
+
+docker run -itd --name container2 --network host shaikmustafa/cycle
+(We no need to give the port number here and if given then it will discard the port number)
+(Host network)
+(We can access through host ip-address)
+
+docker run -itd --name container3 -p 2222:80 --network none shaikmustafa/paytm:bus
+(None network)
+(We can’t access this because it is in the none network)
+(None network won’t going to expose outside)
+(It will stay in the server only)
+(Generally we use none network for databases)
+
+
+Custom network
+
+We will create our own networks
+
+docker network create db-network
+(Create a custom network)
+
+docker network inspect dev-network
+(If we want to know full information about a network)
+
+
+By default two networks cannot communicate 
+
+docker inspect container1 | grep -i "Ipaddress"
+(To know only the IP address)
+
+docker inspect container2 | grep -i "Ipaddress"
+(To know only the IP address)
+
+docker exec -it container1 bash
+(To go inside the container)
+
+apt update -y
+(We cannot install any tool directly inside ubuntu server so first we have to update this)
+
+apt install iputils-ping -y
+(Install ping)
+
+ping 172.19.0.2 (ping container2-ipaddress)
+(To check container1 and container2 are communicating  or not )
+
+exit 
+(To exit from conatiner)
+
+
+
+We have to attach container2 ipaddress to container1
+And
+We have to attach container1 ipaddress to container2
+Then those both will communicate 
+
+docker network connect dev-network container2
+docker network connect db-network container1
+(Now both will communicate)
+
+
+docker network disconnect db-network container1
+(To disconnect the communication )
+
+
+
+docker stop $(docker ps -a)
+docker rm $(docker ps -a)
+(If we want to remove all the containers at a time)
+
+docker rmi $(docker images) (If we want to remove all the images at a time)
+
+docker network
+(To see list of network commands)
+
+docker network rm flm
+(To remove the fim network)
+
+docker rm -f container2
+(Remove container forcefully)
+(We no need to run stop command before removing a container here)
+
+docker network prune
+(If I want to remove all the empty networks)
+
+docker container prune
+(If I want to remove all the exited containers)
+
+docker image prune
+(If I want to remove dangling images)
+
+docker rm -f $(docker ps -a)
+(To remove all the containers forcefully)
+
+docker rmi $(docker images)
+(To remove all the images)
+
+docker system prune
+(If we want to remove all the unused components (networks, containers, images, volumes)
+
+
+
+
+
+
+
+
+
+
+Volumes
+
+
+NOTE: 1. If you delete the container then volume will not be deleted
+            2. If you make any changes in the container like deleting or modiffying the files in the containers. Those changes are replicated in all the containers and in the volume also.
+	    3. We can attach the volume to new container 
+            4. We cannot attach the volume to existing containers
+
+
+
+UN-NAMED VOLUME
+
+
+
+yum install docker -y && systemctl start docker
+
+docker run -itd --name container-1 -v /pavan ubuntu
+(Create a container along with volume and mount the volume to /pavan path in the container)
+
+docker volumn ls
+(List of volumes)
+
+docker inspect container-1
+(Inspecting container)
+
+cd /var/lib/docker/volumes
+(Default path)
+
+cd b3938fb7f71806c776676e92e8572d8c08b26396d5e9ec68fd771bc3bbf43ad5
+(It is a volume name)
+
+cd _data
+(_data is default thing)
+
+touch file{1..5}.txt
+(Create files in this column so that you can see in containers)
+
+cd
+(Go back to root user)
+
+docker run -itd --name container-2 --privileged=true --volumes-from=container-1 ubuntu
+(Create a container 2 and mount the volume from container 1)
+
+docker exec -it container-2 bash
+(Go into the container 2 to see or modify the files in the volumn)
+
+
+
+
+docker ps
+(List of containers)
+
+docker rm -f container-1 container-2
+(Force delete the containers)
+
+docker volume ls
+(List of volumes. We can still see the volume here even if we delete the containers)
+
+docker run -itd --name container-3 --mount src=b3938fb7f71806c776676e92e8572d8c08b26396d5e9ec68fd771bc3bbf43ad5,destination=/pavan ubuntu
+(We are creating a new container and attaching an existing volume to it and src is the name of the volume and destination is the path in the container)
+
+
+
+
+
+NAMED VOLUME
+
+
+docker volume create myvolume
+(Create a volume with the name)
+
+docker volume ls
+(List of volumes)
+
+docker run -itd --name container-4 --mount src=myvolume,destination=/sai ubuntu
+(Create a container with attaching the volume and give path)
+
+docker exec -it container-4 bash
+(Go into the container-4 and do below commands to create a folders that we can see in the volume)
+    cd sai
+    touch folder{1..5}
+    exit
+
+cd /var/lib/docker/volumes/
+
+cd myvolume
+
+cd _data
+(We can see the created folders in this)
+
+
+
+
+
+docker rm -f ${docker ps -a}
+(Remove all the containers )
+
+docker ps -a
+(See list of containers)
+
+docker volume prune
+(Remove all unnamed volumes)
+
+docker volume ls
+(See list of volumes)
+
+docker volume rm myvolume
+(Remove named volume)
+
+docker volume ls
+(See list of volumes)
+
+
+
+
+
+FIRST WAY - container to container 
+
+
+docker volume create myapp
+
+cd /var/lib/docker/volumes
+
+cd myapp
+
+cd _data
+
+vim index.html
+(Add some html data)
+
+cd
+(Go back to root user)
+
+docker run -itd --name container-1 -p 1234:80 --mount src=myapp,destination=/usr/share/nginx/html/  nginx
+(Create a container 1 with nginx image by mounting the volume and by giving the port number also because we need to access)
+
+docker run -itd --name container-2 -p 1122:80 --mount src=myapp,destination=/usr/share/nginx/html/  nginx
+(Create a container 2 with nginx image by mounting the volume and by giving the port number also because we need to access)
+
+cd /var/lib/docker/volumes
+
+cd myapp
+
+cd _data
+
+vim index.html
+(Modify the data)
+
+cd
+(Go back to root user)
+
+
+
+
+SECOND WAY - host(our server) to container
+
+git clone https://github.com/devops0014/static-cycle-website-jenkins-docker-.git
+(Clone the repo)
+
+cd static-cycle-website-jenkins-docker-/
+(Go into the repo)
+
+ls
+(See list of files)
+
+docker run -itd --name container-5 -p 3344:80 -v $(pwd):/usr/share/nginx/html/ nginx
+(We are sending all the PWD files into the container)
+
+
+
+
+
+READ ONLY
+
+docker volume ls
+
+docker run -itd --name container-6 -v myapp:/mydata:ro ubuntu
+(Create a container with read only permission)
+(myapp is the volume name and mydata is the destination and ro is read only)
+
+docker exec -it container-6 bash
+(Go into the container-6 and try to modify the data or create any folder then we will get error because only RO permission is there)
+	cd mydata
+	touch folder1
+	exit
+
+
+
+
+
+
+docker run -itd --name container-7 -v divya:/myvolume:ro ubuntu
+(Create a container with Divya as a volume name is created here and myvolume is the path in container)
+
+docker exec -it container-7 bash
+	cd myvolume
+	touch file.txt
+	cd
+	exit
+	
+
+docker inspect container-7 | grep -i "volume"
+(Inspecting the container volume)
+
+cd /var/lib/docker/volumes/divya/_data
+(Go to source volume to modify)
+
+touch file{1..5}.txt
+(Add the files)
+
+cd
+(Go to root)
+
+docker exec -it container-7 bash
+(We can see files in the container but we can’t modify in the container)
+
+
+

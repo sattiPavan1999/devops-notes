@@ -1,0 +1,103 @@
+MINIKUBE
+(It is a tool used to setup a single node cluster on k8s)
+
+* We need a server with 2 cpus and 4 gb of ram
+
+    1  yum install docker -y && systemctl start docker
+        (installing docker is needed)
+
+    (Go to this url to select the installation command https://minikube.sigs.k8s.io/docs/start/?arch=%2Flinux%2Fx86-64%2Fstable%2Fbinary+download)
+    (we will get below two commands from this link)
+    2  curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-amd64
+    3  sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
+
+    4  minikube version
+    (Check minikube is installed or not)
+
+    5  minikube start --driver=docker --force
+    (command to start minikube)
+
+    6  minikube status
+    (check the status of minikube)
+
+    7  docker ps
+    (we can see a minikube container)
+    
+    8  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    (This is for installing kubectl. Go to below link to copy the command)
+    (https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
+
+    9 chmod +x kubectl
+      (give x permissions to kubectl)
+      (we can see this in the above official link)
+
+    10 kubectl version
+       (we get "command not found")
+    11 mv kubectl /usr/local/bin/
+       (so we need to move this to its default path)
+    12 kubectl version
+       (now we can see version)
+
+ 14  kubectl api-resources
+	(see the list of resources)
+
+IMPERATIVE WAY
+
+   15  kubectl run mypod --image=nginx
+	(To create a pod)
+	(We are giving image name)
+	(container will be there inside the pod)
+
+   16  kubectl get pods
+	(list of pods)
+
+DECLARATIVE WAY
+(means we have to create through a manifest file)
+
+   18  vim pod.yml
+	(
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-name1
+spec:
+  containers:
+    - name: pod-container1
+      image: shaikmustafa/cycle
+      ports:
+        - containerPort: 80
+
+	)
+
+(NOTE: we will get apiVersion, kind from the running of this command "kubectl api-resources")
+(NOTE: file should be in the form for .yml or .yaml format only)
+   
+   21  kubectl create -f pod.yml
+	(To create a pod)
+
+   22  kubectl get pods
+	(list of pods)
+
+   23  kubectl get pods -o wide
+	(To get the IP address of a pod)
+
+   24 kubectl get pods -o yaml
+	(To get all pods information in yaml format)
+
+   25 kubectl get pods pod-name1 -o yaml
+	(To get specific pod information)
+
+   26 kubectl get pods pod-name1 -o json
+	(To get specific pod information in json format)
+
+   27 kubectl describe pods pod-name1
+	(To get full information about a pod)
+
+   28 kubectl delete pod mypod
+	(It will delete the specific pod called mypod from pods)
+
+   29  kubectl delete pod --all
+	(It will delete all the pods)
+
