@@ -1,0 +1,111 @@
+RBAC
+
+⦁	context is used to switch the user
+
+
+
+    1  yum install docker -y && systemctl start docker
+    2  curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-amd64
+    3  sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
+    4  minikube start --driver=docker --force
+	(install and start the minikube)
+
+    5  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    6  chmod +x kubectl
+    7  mv kubectl /usr/local/bin/
+	(Install kubectl)
+	
+    8  kubectl version
+    9  minikube status
+
+   10  kubectl config view
+	(To view the configurational details about the k8s)
+	(means, about cluster details, about contexts, current-context, users)
+
+
+Steps to create certificate. 
+
+lets create a folder: mkdir mustafa-user && cd mustafa-user
+Generate a key using openssl : openssl genrsa -out mustafa.key 2048
+Generate a Client Sign Request (CSR) : openssl req -new -key mustafa.key -out mustafa.csr -subj "/CN=mustafa/O=group1"
+Generate the certificate (CRT):  openssl x509 -req -in mustafa.csr -CA ~/.minikube/ca.crt -CAkey ~/.minikube/ca.key -CAcreateserial -out mustafa.crt -days 500
+Steps to create user. 
+lets create a user: kubectl config set-credentials mustafa --client-certificate=mustafa.crt --client-key=mustafa.key
+
+Set a context entry in kubeconfig: kubectl config set-context my-context --cluster=minikube --user=Mustafa
+(It will create context called my-context)
+Context is used to switch the users in K8s cluster. Because in K8s we cant switch using users, we will add users to context and we will use context to switch b/w users. 
+
+To see the user: kubectl config view
+Switch to devops user: kubectl config use-context my-context
+
+
+
+
+#role.yml
+---
+apiVersion:  rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: mustafa-role
+  namespace: dev
+rules:
+  - apiGroups: ["*"]
+    resources: ["pods", "deployments"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+
+
+  - apiGroups: ["*"]
+    resources: ["secrets"]
+    verbs: ["get", "list", "create", "delete"]
+
+
+#role-binding.yml
+---
+apiVersion:  rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mustafa-role-binding
+  namespace: dev
+subjects:
+  - kind: User
+    name: mustafa
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: mustafa-role
+  apiGroup: rbac.authorization.k8s.io
+
+
+#cluster-role.yml
+---
+apiVersion:  rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mustafa-cluster-role
+rules:
+  - apiGroups: ["*"]
+    resources: ["pods", "deployments", "replicasets"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+
+
+  - apiGroups: ["*"]
+    resources: ["secrets"]
+    verbs: ["get", "list", "create", "delete"]
+
+
+
+#cluster-role-binding.yml
+---
+apiVersion:  rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: mustafa-cluster-role-binding
+subjects:
+  - kind: User
+    name: mustafa
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: mustafa-cluster-role
+  apiGroup: rbac.authorization.k8s.io
