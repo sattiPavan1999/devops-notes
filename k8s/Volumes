@@ -1,0 +1,316 @@
+Volumes
+
+Type of Volume
+1. emptyDir
+   (If POD is deleted then the data won't be there in newly created POD)
+   (Volume is created inside the POD)
+2. hostPath
+   
+3. PV (Persistent Volume) and PVC (Persistent Volume Claim)
+	(Here we create a EBS volume in cloud to store the data)
+	(It is more used)
+
+    1  
+    yum install docker -y && systemctl start docker
+    curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-amd64
+    sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
+    minikube start --driver=docker --force
+	(install minikube)
+
+    6  
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    chmod +x kubectl
+    mv kubectl /usr/local/bin/
+	(install kubectl)
+
+
+   10  kubectl version
+   11  minikube status
+
+   
+   16  vim deployment.yml
+(
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: swiggy
+  template:
+    metadata:
+      labels:
+        app: swiggy
+    spec:
+      containers:
+        - name: cont-1
+          image: nginx
+          volumeMounts:
+            - mountPath: "/newPath1"
+              name: myvolume
+
+        - name: cont-2
+          image: nginx
+          command: ["./bin/bash", "-c", "while true; do echo this is k8s; sleep 5; done"]
+          volumeMounts:
+            - mountPath: "/newPath2"
+              name: myvolume
+
+      volumes:
+        - name: myvolume
+          emptyDir: {}
+)
+(we are including volumes and attaching that volume to containers in that pod)
+(second container should always run. so we are giving while loop.)
+
+   17  kubectl create -f deployment.yml
+	(create deployment)
+
+   18  kubectl get pods
+	(list of pods)
+
+   23  kubectl exec -it deploy-1-7fcf86bc7c-ns8w2 -c cont-1 -- bash
+	(To go inside the specific container in the pod)
+	1  \ls
+	(to see the list)
+	(we see our created path)
+        2  cd newPath1/
+	(go into the path)
+        3  ls
+	(Bydefault the volume is empty. so we can't see anything)
+        4  touch app.java index.html app.py
+	(create files)
+        5  ls
+        6  exit
+
+   24  kubectl exec -it deploy-1-7fcf86bc7c-ns8w2 -c cont-2 -- bash
+        4  cd newPath2/
+        5  ls
+	   (we can see the files which are created in another container because of volume is attached to both)
+        6  touch styles.css react.js
+           (create files)
+        7  exit
+
+
+   25  kubectl exec -it deploy-1-7fcf86bc7c-ns8w2 -c cont-1 -- bash
+	7  cd newPath1/
+        8  ls
+	   (we can see the files which are created in another container because of volume is attached to both)
+        9  exit
+        10  history
+
+
+   29  kubectl delete pod deploy-1-7fcf86bc7c-ns8w2
+	(delete the existing pod)
+	(new pod will be created here because of ReplicaSet)
+
+   30  kubectl get pods
+	(list of pods)
+
+   31  kubectl exec -it deploy-1-7fcf86bc7c-nwhlm  -c cont-1 -- bash
+	(To go inside the specific container in the pod)
+        1  cd newPath1/
+    	2  ls
+	(we cannot see the files which we created previously)
+	(because this is a type of emptyDir volume)
+    	
+
+
+hostpath
+
+
+   34  kubectl delete deploy deploy-1
+	(delete this deploy)
+
+   35  vim deployment.yml
+(
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: swiggy
+  template:
+    metadata:
+      labels:
+        app: swiggy
+    spec:
+      containers:
+        - name: cont-1
+          image: nginx
+          volumeMounts:
+            - mountPath: "/newPath1"
+              name: myvolume
+
+        - name: cont-2
+          image: nginx
+          command: ["./bin/bash", "-c", "while true; do echo this is k8s; sleep 5; done"]
+          volumeMounts:
+            - mountPath: "/newPath2"
+              name: myvolume
+
+      volumes:
+        - name: myvolume
+          hostPath:
+            path: "/tmp/myhostpathvolume"
+
+)
+(specify the path for hostpath. It says where the volume should be there)
+
+   36  kubectl create -f deployment.yml
+	(create deploy)
+
+   37  kubectl get pods
+
+   42  kubectl exec -it deploy-1-75f44d4cb9-bl4mr -c cont-1 -- bash
+	(To go inside the specific container in the pod)
+	1  \ls
+	(to see the list)
+	(we see our created path)
+        2  cd newPath1/
+	(go into the path)
+        3  ls
+	(Bydefault the volume is empty. so we can't see anything)
+        4  touch app.java index.html app.py
+	(create files)
+        5  ls
+        6  exit
+   
+   45  kubectl delete pod deploy-1-75f44d4cb9-bl4mr
+	(delete the pod)
+	(new pod will be created)
+
+   46  kubectl get pods
+
+   47  kubectl exec -it deploy-1-75f44d4cb9-8s8n4  -c cont-2 -- bash
+	4  cd newPath2/
+        5  ls
+	   (we can see the files which are created in previous pod)
+	   (Here if Pod is deleted then the data in volume won't delete. Because the volume is saved in hostpath)
+
+
+   
+
+
+PV (Persistent Volume) and PVC (Persistent Volume Claim)
+
+* create EBS volume in aws and copy the volume ID
+
+   50  vim pv.yml
+(
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-1
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Recycle
+  awsElasticBlockStore:
+    volumeID: vol-0f7b861bd92d8f6f4
+    fsType: ext4
+
+)
+
+   51  kubectl create -f pv.yml
+	(create pv)
+
+   52  vim pv.yml
+(
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-2
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Recycle
+  awsElasticBlockStore:
+    volumeID: vol-0f7b861bd92d8f6f4
+    fsType: ext4
+
+   53  kubectl create -f pv.yml
+	(create pv)
+
+   54  kubectl get pv
+	
+   55  kubectl describe pv pv-1
+
+   59  vim pvc.yml
+(
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-1
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 7Gi
+)
+
+   60  kubectl create -f pvc.yml
+	(create pvc)
+	(It will take from pv-2 because it requires 7gb)
+
+   61  kubectl get pvc
+
+   62  kubectl delete deploy deploy-1
+	(deleted existing deploy)
+
+   63  vim deployment.yml
+(
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: swiggy
+  template:
+    metadata:
+      labels:
+        app: swiggy
+    spec:
+      containers:
+        - name: cont-1
+          image: nginx
+          volumeMounts:
+            - mountPath: "/newPath1"
+              name: myvolume
+
+        - name: cont-2
+          image: nginx
+          command: ["./bin/bash", "-c", "while true; do echo this is k8s; sleep 5; done"]
+          volumeMounts:
+            - mountPath: "/newPath2"
+              name: myvolume
+
+      volumes:
+        - name: myvolume
+          persistentVolumeClaim:
+            claimName: pvc-1
+)
+(give the volume)
+
+   64  kubectl create -f deployment.yml
+	(create deployment)
+	 
