@@ -1,0 +1,268 @@
+HELM
+
+
+NOTE: change these when we are  using default files
+1. Charts.yaml
+    
+	appVersion: "latest"
+
+2. vim values.yaml
+	replicaCount: 3 (our requirement)
+
+	service:
+	type: LoadBalancer
+
+  
+
+
+    1  curl -Lo kops https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+    2  chmod +x kops
+    3  sudo mv kops /usr/local/bin/kops
+	(install kops)
+
+    4     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    5  chmod +x kubectl
+    6  mv kubectl /usr/local/bin/
+	(install kubectl)
+
+    7  kubectl version
+
+    8  export KOPS_STATE_STORE=s3://mybucket1.flm
+    9  kops create cluster --name mycluster.k8s.local --zones=ap-south-1a,ap-south-1b --master-count=1 --master-size=c7i-flex.large --master-volume-size=30 --node-count=2 --node-size=t3.micro --node-volume-size=20 --image=ami-02d26659fd82cf299
+   10  kops update cluster --name mycluster.k8s.local --yes --admin
+	(create a cluster)
+
+
+   11  kubectl get nodes
+
+  
+   17  curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+   18  chmod 700 get_helm.sh
+   19  ./get_helm.sh
+	(install helm)
+
+   20  helm version
+
+
+
+
+we can modify the existing manifest files acc to our criteria
+
+   21  helm create myhelm-1
+   22  ll
+   23  cd myhelm-1/
+   24  ll
+   25  cd templates/
+   26  ll
+   27  vim deployment.yaml
+ 
+   38  helm install release1 .
+	(to install helm)
+
+   39  helm list
+   	(to see list of helm)
+
+   42  helm uninstall release1
+	(to uninstall helm)
+
+
+
+
+we can delete all the default files and add our own files
+
+   74  helm create myhelm-2
+   75  ls
+   76  cd myhelm-2
+   77  ls
+   78  cd templates/
+   79  ls
+   80  rm -rf *
+   81  vim deployment.yaml
+(
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: zomato
+  template:
+    metadata:
+      labels:
+        app: zomato
+    spec:
+      containers:
+        - name: mycontainer1
+          image: shaikmustafa/cycle
+          ports:
+            - containerPort: 80
+)
+
+
+   82  vim hpa.yaml
+(
+---
+apiVersion: autoscaling/v2
+kind:  HorizontalPodAutoscaler
+metadata:
+  name: myhpa1
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: deploy-1
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+)
+
+
+   83  vim service.yaml
+(
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myservice1
+spec:
+  type: LoadBalancer
+  selector:
+    app: zomato
+  ports:
+    - port: 80
+      targetPort: 80
+)
+
+
+   85  cd ../
+   86  helm list
+   87  helm uninstall myrelease
+   88  helm install myrelease .
+   89  kubectl get all
+   90  cd templates/
+   91  ls
+   92  cd deployment.yaml
+   93  vim deployment.yaml
+   94  cd ../
+
+   95  helm upgrade myrelease .
+	(To update image, etc..)
+
+   96  helm history myrelease
+
+   97  helm rollback myrelease 1
+	(rollback to specific version)
+
+   98  helm history myrelease
+
+   99  helm uninstall myrelease
+	
+  100  kubectl get po
+
+  101  kubectl get all
+
+
+
+  103  helm install myrelease .
+  104  ls
+  105  cd ../
+
+  106  helm lint myhelm-2
+	(To check our changes correct or not)
+
+  108  helm template myhelm-2
+
+  109  helm package myhelm-2
+	(It creates tgz file)
+
+  110  ls
+
+  111  helm repo index .
+	(helm basic details will be there in this index file)
+
+  112  ls
+  113  cat index.yaml
+
+  114  yum install git -y
+  115  git clone https://github.com/sattiPavan1999/mynewhelm.git
+  116  ls
+  117  mv myhelm-2-0.1.0.tgz index.yaml mynewhelm
+  118  cd mynewhelm/
+  119  ls
+  120  git add *
+  121  git commit -m "all" .
+  122  git push -u origin main
+
+
+
+  124  helm list
+  125  helm uninstall myrelease
+  126  cd
+  127  ll
+
+  128  rm -rf *
+	(remove all the files)
+
+  129  helm repo add myrelease https://sattipavan1999.github.io/mynewhelm/
+	(we get this url from git repo -> setting -> pages)
+	(we have to enable the branch in pages)
+
+  130  helm repo list
+  131  helm install newrelease myrelease/myhelm-2
+	(give new name)
+
+  132  kubectl get all
+
+
+
+
+
+fresh start
+
+NOTE: change these when we are  using default files
+1. Charts.yaml
+    
+	appVersion: "latest"
+
+2. vim values.yaml
+	replicaCount: 3 (our requirement)
+
+	service:
+	type: LoadBalancer
+
+
+  134  helm uninstall newrelease
+  135  ls
+  136  ll
+  137  kubectl get all
+  138  helm create newhelm
+  139  cd newhelm/
+  140  ls
+  141  cd templates/
+  142  ls
+  143  cd ../
+  144  vim Chart.yaml
+  145  vim values.yaml
+  146  cd
+  147  ls
+  148  helm lint newhelm/
+  149  helm template newhelm/
+  150  helm package newhelm/
+  151  ls
+  152  helm repo index .
+  
+* now create a new repo in GitHub and clone that and send index and tgz files to repo (similar process like above)
+* (we get this url from git repo -> setting -> pages)
+	(we have to enable the branch in pages)
+
+
+
