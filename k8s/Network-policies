@@ -1,0 +1,328 @@
+Network Policy
+
+* Bydefault all pods communicate with each other even if the PODs are from different NameSpace
+* we can specify which policy should communicate with which policy by specifying namespace label and pod label
+
+
+
+    1  yum install docker -y && systemctl start docker
+
+    2  curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-amd64
+    3  sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
+	(install minikube)
+
+    4  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    5  chmod +x kubectl
+    6  mv kubectl /usr/local/bin/
+	(install kubectl)
+
+    7  minikube start --network-plugin=cni --cni=calico --force
+	(install calico tool for minikube)
+
+    9  kubectl get pods -l k8s-app=calico-node -A
+
+   10  kubectl run pod-1 --image=nginx
+   11  kubectl run pod-2 --image=httpd
+	(create two pods)
+
+   12  kubectl get po -o wide
+	(to get IP address of pods)
+
+   13  kubectl exec -it pod-2 -- bash
+	(go into the pod to see if it is communicating with other pod)
+	1  apt update -y
+        2  apt install iputils-ping -y
+    	3  ping 10.244.120.67
+		(It is the IP of pod-1)
+    	4  exit
+	(run these commands)
+
+
+
+	
+
+   * Now create a NP which denys all the IP addresses. So no POD will communicate with anyother POD
+
+   16  vim deny-all.yml
+(
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+)
+
+   17  kubectl create -f deny-all.yml
+
+   18  kubectl get netpol
+
+   19  kubectl exec -it pod-2 -- bash
+	(go into the pod to see if it is communicating with other pod)
+	ping 10.244.120.67
+	(we can see the pods are not communicating)
+
+Even If we create new POD then it also wont communicate with other pods
+If we delete network policy then the pods will communicate again
+
+   20  kubectl delete netpol --all
+	
+   21  kubectl exec -it pod-2 -- bash
+	(go into the pod to see if it is communicating with other pod)
+	ping 10.244.120.67
+	(we can see the pods are communicating)
+
+
+
+
+
+* Allow or Deny specific POD to communicate
+
+NOTE: Start Newly
+
+    1  yum install docker -y && systemctl start docker
+	(installing Docker for minikube)
+
+    2  curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-amd64
+    3  sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
+    7  minikube start --network-plugin=cni --cni=calico --force
+
+    4  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    5  chmod +x kubectl
+    6  mv kubectl /usr/local/bin/
+    
+    8  kubectl get pods -l k8s-app=calico-node -A
+	(install calico tool)
+
+    9  vim pod.yaml
+(
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: client
+  labels:
+    app: client
+spec:
+  containers:
+    - name: cont-0
+      image: shaikmustafa/dm
+      ports:
+        - containerPort: 80
+)
+
+   10  kubectl create -f pod.yaml
+
+   11  vim pod.yaml
+(
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: swiggy
+  labels:
+    app: swiggy
+spec:
+  containers:
+    - name: cont-1
+      image: shaikmustafa/dm
+      ports:
+        - containerPort: 80
+)
+
+   12  kubectl create -f pod.yaml
+
+   13  vim pod.yaml
+(
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: zomato
+  labels:
+    app: zomato
+spec:
+  containers:
+    - name: cont-2
+      image: shaikmustafa/dm
+      ports:
+        - containerPort: 80
+)
+
+   14  kubectl create -f pod.yaml
+
+   15  vim pod.yaml
+(
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: uber
+  labels:
+    app: uber
+spec:
+  containers:
+    - name: cont-3
+      image: shaikmustafa/dm
+      ports:
+        - containerPort: 80
+)
+
+   16  kubectl create -f pod.yaml
+
+   17  kubectl get po
+   18  kubectl get po -o wide --show-labels
+	(get all the pods with their IP adrress)
+
+   19  kubectl exec -it client -- apt update -y
+	(we can update the pod or container directly using this command)
+	(we no need to go inside the pod)
+
+   20  kubectl exec -it client -- apt install iputils-ping -y
+	(install ping package)
+
+   21  kubectl exec -it client -- ping google.com
+	(check if ping is working or not)
+
+   22  kubectl exec -it swiggy -- apt update -y
+   23  kubectl exec -it swiggy -- apt install iputils-ping -y
+
+   24  kubectl exec -it zomato -- apt update -y
+   25  kubectl exec -it zomato -- apt install iputils-ping -y
+
+   26  kubectl exec -it uber -- apt update -y
+   27  kubectl exec -it uber -- apt install iputils-ping -y
+
+   28  kubectl get netpol
+	(list of network policies)
+	(we don't have NPs so all pods will communicate with each other)
+
+   29  kubectl get po -o wide --show-labels
+
+   30  kubectl exec -it uber -- ping 10.244.120.70
+	(check if the client POD is communicating with uber pod)
+	(It will communicate because of there is no NP as of now)
+
+   31  kubectl exec -it zomato -- ping 10.244.120.70
+	(check if the client POD is communicating with zomato pod)
+	(It will communicate because of there is no NP as of now)
+
+ 
+
+Ingress
+
+(In this Example: Only swiggy needs to communicate with client )
+
+
+   34  vim network-policy-1.yaml
+(
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-swiggy-to-client
+spec:
+  podSelector:
+    matchLabels:
+      app: client
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            app: swiggy
+)
+
+   35  kubectl create -f network-policy-1.yaml
+	(create network policy)
+
+   36  kubectl get po -o wide --show-labels
+
+   39  kubectl exec -it swiggy -- ping 10.244.120.70
+	(checking client IP address is communicating with swiggy pod)
+	(It is comminicating)
+
+   40  kubectl exec -it uber -- ping 10.244.120.70
+        (It is not communicating with uber)
+
+   41  kubectl exec -it zomato -- ping 10.244.120.70
+	(It is not communicating with zomato)
+
+   
+
+Egress
+
+(In this Example: swiggy does not needs to communicate with other pods )
+
+
+   46  vim network-policy-2.yaml
+(
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-swiggy-egress-to-client
+spec:
+  podSelector:
+    matchLabels:
+      app: swiggy
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+      - podSelector:
+          matchLabels:
+            app: client
+)
+
+   47  kubectl create -f network-policy-2.yaml
+
+   49  kubectl get po -o wide --show-labels
+
+   51  kubectl exec -it swiggy -- ping 10.244.120.69
+	(Now swiggy wont communicate with zomato)
+   52  kubectl exec -it swiggy -- ping 10.244.120.68
+	(Now swiggy wont communicate with uber)
+
+
+
+Deny
+(If there are 10 pods, then not even single pod communicate with other pod)
+
+   53  kubectl exec -it zomato -- ping 10.244.120.69
+	or
+	kubectl exec -it uber -- ping 10.244.120.68
+
+	(here uber is communicationg with Zomato and Zomato is communicationg with uber)
+	(because there is no network policy for these)
+
+   57  vim deny.yaml
+(
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-the-pods
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+)
+
+   58  kubectl create -f deny.yaml
+
+   59  kubectl exec -it zomato -- ping 10.244.120.69
+	(uber wont communicate with zomato)
+
+   60  kubectl exec -it uber -- ping 10.244.120.68
+	(zomato wont communicate with uber)
+
+   61  kubectl exec -it swiggy -- ping 10.244.120.70
+	(client communicate with swiggy and swiggy communicate with client) 
+	(because there are network policies for these two i.e., Ingress and Egress)
