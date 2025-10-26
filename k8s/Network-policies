@@ -324,5 +324,11 @@ spec:
 	(zomato wont communicate with uber)
 
    61  kubectl exec -it swiggy -- ping 10.244.120.70
-	(client communicate with swiggy and swiggy communicate with client) 
-	(because there are network policies for these two i.e., Ingress and Egress)
+	(swiggy communicate with client) 
+	(because there are network policie)
+
+   62  kubectl exec -it client -- ping 10.244.120.67
+		(client pod wont communicate with swiggy pod)
+	In simple terms:
+	It checks whether
+	👉 the client Pod can reach (communicate with) the Pod at IP 10.244.120.67.
