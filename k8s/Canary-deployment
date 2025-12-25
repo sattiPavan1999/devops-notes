@@ -1,0 +1,98 @@
+CANARY DEPLOYMENT
+
+
+
+    1  curl -Lo kops https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+    2  chmod +x kops
+    3  sudo mv kops /usr/local/bin/kops
+    4  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    5  chmod +x kubectl
+    6  mv kubectl /usr/local/bin/
+        (install kubectl and kops)
+
+    7  aws s3 ls
+    8  export KOPS_STATE_STORE=s3://mybucket2.flm
+    9  kops create cluster --name mycluster.k8s.local --zones ap-south-1a,ap-south-1b --master-count=1 --master-size=m7i-flex.large --master-volume-size=30 --node-count=3 --node-size=c7i-flex.large --node-volume-size=20 --image=ami-00ca570c1b6d79f36
+   10  kops update cluster --name mycluster.k8s.local --yes --admin
+        (create cluster)
+
+   11  kubectl get nodes
+
+   14  kubectl get pods
+
+   15  curl -L https://istio.io/downloadIstio | sh -
+   17  cd istio-1.28.2/
+   22  export PATH=$PWD/bin:$PATH
+        (download istio and export path)
+
+   23  kubectl get ns
+
+   24  kubectl label namespace default istio-injection=enabled
+        (give label to default namespace)         
+   25  kubectl get ns --show-labels
+
+   26  istioctl install --set profile=demo
+        (install istio)
+       
+   39  kubectl apply -f samples/bookinfo/platform/kube/bookinfo.yaml
+        (apply this so that the default manifest bookinfo files will be executed)
+   
+   42  kubectl get po
+        (we can see pods of bookinfo)
+   43  kubectl get svc
+        (we can see services of bookinfo)
+
+   49  kubectl patch svc productpage -p '{"spec": {"type": "LoadBalancer"}}'
+        (we can change the service type of productpage to LoadBalancer)
+        (here the default service type is clusterIP from which we can't access the app)
+
+   50  kubectl get svc
+        (we will get dns name for productpage)
+
+   51  vim destination-rule.yml
+(
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: reviews-destination
+spec:
+  host: reviews
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+)
+
+   54  kubectl create -f destination-rule.yml 
+        (create this file)
+
+   53  vim virtual-service.yml
+(
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: reviews-canary
+spec:
+  hosts:
+  - reviews
+  http:
+  - route:
+    - destination:
+        host: reviews
+        subset: v1
+      weight: 80
+    - destination:
+        host: reviews
+        subset: v2
+      weight: 20
+)
+
+   54  kubectl create -f virtual-service.yml 
+        (create this file)
+
+   55  kubectl get vs
+
+   57  kubectl get dr
