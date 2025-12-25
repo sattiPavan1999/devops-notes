@@ -96,3 +96,195 @@ spec:
    55  kubectl get vs
 
    57  kubectl get dr
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+   1  curl -Lo kops https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+    2  chmod +x kops
+    3  sudo mv kops /usr/local/bin/kops
+    4  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    5  chmod +x kubectl
+    6  mv kubectl /usr/local/bin/
+        (install kubectl and kops)
+
+    7  aws s3 ls
+    8  export KOPS_STATE_STORE=s3://mybucket2.flm
+    9  kops create cluster --name mycluster.k8s.local --zones ap-south-1a,ap-south-1b --master-count=1 --master-size=m7i-flex.large --master-volume-size=30 --node-count=3 --node-size=c7i-flex.large --node-volume-size=20 --image=ami-00ca570c1b6d79f36
+   10  kops update cluster --name mycluster.k8s.local --yes --admin
+        (create cluster)
+
+   94  curl -L https://istio.io/downloadIstio | sh -
+   95  cd istio-1.28.2/
+   96  export PATH=$PWD/bin:$PATH
+        (download istio and export path)
+
+   97  istioctl install --set profile=demo
+        (install istio)
+
+   98  ls
+   99  cd ../
+  100  ls
+
+  101  mkdir app
+  102  cd app
+  103  vim deploy-1.yml
+(
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: zomato
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: zomato
+        version: v1
+    spec:
+      containers:
+        - name: mycontainer1
+          image: shaikmustafa/cycle
+          ports:
+            - containerPort: 80
+)
+
+  104  vim deploy-2.yml
+(
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-2
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: zomato
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: zomato
+        version: v2
+    spec:
+      containers:
+        - name: mycontainer2
+          image: shaikmustafa/dm
+          ports:
+            - containerPort: 80
+)
+
+  105  kubectl create -f deploy-1.yml
+  106  kubectl create -f deploy-2.yml
+
+
+  107  kubectl get po
+  113  kubectl get svc
+
+  114  vim service.yml
+(
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myservice
+spec:
+  type: LoadBalancer
+  selector:
+    app: zomato
+  ports:
+    - port: 80
+      targetPort: 80
+)
+
+  115  kubectl create -f service.yml
+
+  116  kubectl get svc
+
+  118  vim destination-rule.yml
+(
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: destinationrule-1
+  namespace: dev
+spec:
+  host: myservice
+  subsets:
+  - name: v1
+    labels:
+      app: zomato
+      version: v1
+
+  - name: v2
+    labels:
+      app: zomato
+      version: v2
+)
+
+
+  131  vim virtual-service.yml
+(
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: zomato-virtualservice
+  namespace: dev
+spec:
+  hosts:
+  - myservice
+  http:
+  - route:
+    - destination:
+        host: myservice
+        subset: v1
+      weight: 50
+    - destination:
+        host: myservice
+        subset: v2
+      weight: 50
+
+)
+
+  132  kubectl create -f destination-rule.yml
+  133  kubectl create -f virtual-service.yml 
+
+  134  kubectl get dr
+  135  kubectl get vs
+
+  136  kubectl get svc
+
+  137  vim virtual-service.yml
+  138  vim destination-rule.yml
+  139  kubectl apply -f destination-rule.yml 
+  140  kubectl apply -f virtual-service.yml 
+  141  vim destination-rule.yml
+  142  vim virtual-service.yml
+  143  kubectl apply -f virtual-service.yml 
+  144  vim virtual-service.yml
+  145  kubectl apply -f virtual-service.yml 
+
+(we can update the weight and see the results through dns link in browser)
+(The traffic is distributed based on weight)
