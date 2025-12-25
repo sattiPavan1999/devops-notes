@@ -1,0 +1,165 @@
+    1  vim jenkins.sh
+(
+sudo yum update –y
+sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+sudo yum upgrade
+sudo yum install java-17-amazon-corretto -y
+sudo yum install jenkins git -y
+sudo systemctl enable jenkins
+sudo systemctl start jenkins
+sudo systemctl status jenkins
+sudo mkdir -p /var/tmp_disk
+sudo chmod 1777 /var/tmp_disk
+sudo mount --bind /var/tmp_disk /tmp
+echo '/var/tmp_disk /tmp none bind 0 0' | sudo tee -a /etc/fstab
+sudo systemctl mask tmp.mount
+df -h /tmp
+sudo systemctl restart jenkins
+)
+    2  sh jenkins.sh
+
+    3  cat /var/lib/jenkins/secrets/initialAdminPassword
+
+    4  yum install docker -y && systemctl start docker
+
+    5  chmod 777 /var/run/docker.sock
+        (This will allow jenkins to communicate with docker)
+
+    8  docker run -d --name sonar-container -p 9000:9000 sonarqube:lts-community
+        (install sonarqube in a container)
+
+    9  vim trivy.sh
+(
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin v0.67.2
+)
+   10  sh trivy.sh
+
+
+Install these 4 extentions in jenkins Pipeline: Stage View, SonarQube Scanner, Docker Pipeline, Email Extension Template
+
+
+
+
+create a pipeline in jenkins
+(
+
+pipeline {
+    agent any
+    environment {
+        scannerHome = tool 'mysonar'
+    }
+    stages {
+        stage("Clean WS") {
+            steps {
+                cleanWs()
+            }
+        }
+        stage("CODE") {
+            steps {
+                git 'https://github.com/sattiPavan1999/ltibbhackathon.git'
+            }
+        }
+        stage ("Code Quality Analysis") {
+            steps {
+                withSonarQubeEnv('mysonar') {
+                     sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=zomato"
+                }
+            }
+        }
+        stage ("Quality Gates") {
+            steps {
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-ID'
+                }
+            }
+        }
+        stage ("Image") {
+            steps {
+                sh 'docker build -t appimage .'
+                sh 'docker build -t dbimage database/'
+            }
+        }
+        stage ("Scan Image") {
+            steps {
+                sh 'trivy image appimage'
+                sh 'trivy image dbimage'
+            }
+        }
+        stage ("Push Image to DH") {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'DH-ID') {
+                        sh 'docker tag dbimage pavanreddy1999/clientapp:dbimage'
+                        sh 'docker tag appimage pavanreddy1999/clientapp:appimage'
+                        sh 'docker push pavanreddy1999/clientapp:dbimage'
+                        sh 'docker push pavanreddy1999/clientapp:appimage'
+                    }
+                }
+            }
+        }
+    }
+}
+
+)
+
+
+
+   2  curl -Lo kops https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+    3  chmod +x kops
+    4  sudo mv kops /usr/local/bin/kops
+    5     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    10  chmod +x kubectl
+    11  mv kubectl /usr/local/bin/
+
+    (Install both kops and kubectl)
+
+
+    12  aws s3 mb s3://mybucket2.flm
+	(Here the s3 bucket name should be unique)
+	(before doing this s3 and ec2 are different users. so both wont communicate by default. update IAM to ec2 then both 	will communicate)
+
+    13  aws s3 ls
+	(list of s3 buckets)
+
+	14  export KOPS_STATE_STORE=s3://mybucket2.flm
+	(we are specifying that the cluster information should be saved in this "mybucket1.flm" bucket)
+    
+    15  kops create cluster --name mycluster.k8s.local --zones ap-south-1a,ap-south-1b --master-count=1 --master-size=m7i-flex.large --master-volume-size=30 --node-count=3 --node-size=c7i-flex.large --node-volume-size=20 --image=ami-00ca570c1b6d79f36
+    (create the cluster)
+
+    16. kops update cluster --name mycluster.k8s.local --yes --admin
+    (update this cluster)
+
+   INSTALL ARGO CD
+
+    kubectl create namespace argocd
+    kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+    kubectl get all -n argocd
+    
+    
+    
+    EXPOSE ARGOCD SERVER:
+    
+    kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
+    yum install jq -y
+    export ARGOCD_SERVER='kubectl get svc argocd-server -n argocd -o json | jq --raw-output '.status.loadBalancer.ingress[0].hostname''
+    echo $ARGOCD_SERVER
+    kubectl get svc argocd-server -n argocd -o json | jq --raw-output .status.loadBalancer.ingress[0].hostname
+    (The above command will provide load balancer URL to access ARGO CD)
+    
+    
+    TO GET ARGO CD PASSWORD:
+    
+    export ARGO_PWD='kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d'
+    echo $ARGO_PWD
+    kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+    (The above command to provide password to access argo cd)
+
+
+    login to argocd with 
+        username: admin
+        password: token that we get from above command
+    
+    create new app -> application name (anything) -> project name (default) -> sync (automatic) -> give repo url from github -> give path of manifest files (manifest/) -> give default cluster url and namespace as default or anyother NS
+     
