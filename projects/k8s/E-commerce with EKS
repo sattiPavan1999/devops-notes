@@ -1,0 +1,233 @@
+E-commece
+
+
+NOTE:
+IT IS IMPORTANT TO DELETE THE CLUSTER
+Command : eksctl delete cluster --name EKS-1 --region ap-south-1
+
+Notes:
+* Types of clusters : 
+		1. Self managed cluster
+			* KOPS : here there is a master node
+		2. Cloud cluster
+			* EKS : here we don’t have a master node, because it will be managed by the cloud. We have to maintain only worker nodes
+
+Notes:
+* There two types of accounts
+1. User account
+	* process: 
+		1. Create a user
+		2. Create a Role
+		3. Role binding (means attaching role to user)
+
+2. Service account
+	* process: 
+		1. Create a user
+		2. Create a Role
+		3. Role binding (means attaching role to user)
+
+
+
+Process for below:
+* aws Ctl  install
+* kubectl install
+* eksctl install
+* Cluster create
+* IAM attach to cluster
+* Create node group
+* Cluster update
+* Create Jenkins dashboard
+
+
+
+    1  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    2  unzip awscliv2.zip
+    3  sudo ./aws/install
+		(install awsctl)
+
+   12  curl -O https://s3.us-west-2.amazonaws.com/amazon-eks/1.34.2/2025-11-13/bin/linux/amd64/kubectl
+   13  chmod +x ./kubectl
+   14  sudo mv ./kubectl /usr/local/bin
+		(install kubectl)
+
+   15  # for ARM systems, set ARCH to: `arm64`, `armv6` or `armv7`
+   16  ARCH=amd64
+   17  PLATFORM=$(uname -s)_$ARCH
+   18  curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
+   19  # (Optional) Verify checksum
+   20  curl -sL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_checksums.txt" | grep $PLATFORM | sha256sum --check
+   21  tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
+   22  sudo install -m 0755 /tmp/eksctl /usr/local/bin && rm /tmp/eksctl
+   	 	(install eksctl)
+
+   23  eksctl create cluster --name=EKS-1 --region=ap-south-1 --zones=ap-south-1a,ap-south-1b --without-nodegroup
+          ( Create an EKS cluster )
+
+24  eksctl utils associate-iam-oidc-provider --region ap-south-1 --cluster EKS-1 --approve
+	( we have to attach an IAM role so that IAM will allows us to create a node group)
+
+25  eksctl create nodegroup --cluster=EKS-1 --region=ap-south-1 --name=node2 --node-type=t3.medium --nodes=3 --nodes-min=2 --nodes-max=4 --node-volume-size=20 --ssh-access --ssh-public-key=new-mac-key --managed --asg-access --external-dns-access --full-ecr-access --appmesh-access --alb-ingress-access
+	(create a node group)
+
+26  aws eks update-kubeconfig --name EKS-1 --region ap-south-1
+	(update the cluster)
+
+27  vim jenkins.sh
+	(see commands from another file)
+	(and setup jenkins)
+
+28   yum install docker -y && systemctl start docker
+29   chmod 777 /var/run/docker.sock
+	(install docker and give 777 permissions)
+
+30 go to jenkins :
+	* install plugins : pipeline stage view, docker pipeline, kuberneties, kuberneties CLI
+	* integrate dockerhub
+		* store dockerhub credentials in the credentials section
+		* give username and password 
+		* the credential ID should be same in both jenkinsfile in repo and in this credentials tab in jenkins
+	* we need to integrate k8s by giving k8s credentials 
+		* we will get k8s credentials from RBAC
+		* If we want to integrate k8s with any service then the authentication and authorisation will be given by RBAC
+		* see the above notes to understand RBAC steps to create a service account
+		* we are going to create a secret based on this service account 
+		* then we are going to paste this secret in jenkins dashboard
+
+31  kubectl create ns webapps
+	(create a web apps namespace)
+
+32. vim service-account.yml
+(
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+ name: jenkins
+ namespace: webapps
+)
+
+33. kubectl create -f service-account.yml
+	(create a service account)
+
+34. vim role.yml
+(
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: app-role
+  namespace: webapps
+rules:
+  - apiGroups:
+      - ""
+      - apps
+      - autoscaling
+      - batch
+      - extensions
+      - policy
+      - rbac.authorization.k8s.io
+    resources:
+      - pods
+      - componentstatuses
+      - configmaps
+      - daemonsets
+      - deployments
+      - events
+      - endpoints
+      - horizontalpodautoscalers
+      - ingress
+      - jobs
+      - limitranges
+      - namespaces
+      - nodes
+      - pods
+      - persistentvolumes
+      - persistentvolumeclaims
+      - resourcequotas
+      - replicasets
+      - replicationcontrollers
+      - serviceaccounts
+      - services
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+)
+
+35. kubectl create -f role.yml
+	(Create a ROLE)
+	(Now we need to attach this role to a service which is called role-binding)
+
+36. vim binding.yml
+(
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+ name: app-rolebinding
+ namespace: webapps
+roleRef:
+ apiGroup: rbac.authorization.k8s.io
+ kind: Role
+ name: app-role
+subjects:
+- namespace: webapps
+  kind: ServiceAccount
+  name: jenkins
+)
+
+37.  kubectl create -f binding.yml 
+	(create a binding)
+
+38  vim secret.yml
+(
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/service-account-token
+metadata:
+  name: mysecret
+  namespace: webapps
+  annotations:
+    kubernetes.io/service-account.name: jenkins
+)
+ 39. kubectl create -f secret.yml 
+	(create a secret)
+
+40. kubectl describe secret mysecret -n webapps
+	(to get the secret token)
+
+41. go to jenkins :
+	* go to credentials to add the secret
+		* select the secret text
+	   	* paste the secret
+		* give ID and ID should be same as the jenkins file in the main module repo ID which is in this project : credentialsId: 'k8-token'
+		* give some description
+
+NOW WE NEED to build multi branch pipeline in jenkins
+
+* Go to GitHub repo and 
+* In the main branch modify the jenkinsfile
+* Change this serverUrl: 'https://FD4CBBAECC1589D6FE8C9DD3E1D9D0D5.gr7.us-east-1.eks.amazonaws.com' 
+* We can get the API server endpoint by going into EKS in aws and paste that endpoint in this serverUrl
+* Select the multi branch pipeline
+* Give some name and description 
+* Select git in Branch Sources and give repo url and save
+* Now it will scan every branch
+* And wherever there is a jenkinsfile then that file will be executed
+* The images will be build and pushed to dockerhub
+* In the last, the main branch will be executed. Here the images will be pulled and manifest files will be executed.
+* So that the pods, services, deployments will be created
+* If main branch build fails then rerun the main branch in jenkins manually
+* After running every branch successfully, go to the main branch in jenkins and go into the logs and we will get DNS name/link. Paste that in the browser. So that we can access the application
+
+
+NOTE:
+IT IS IMPORTANT TO DELETE THE CLUSTER
+Command : eksctl delete cluster --name EKS-1 --region ap-south-1
+
+
+
+
+
+Project overview
+1. We create a EKS cluster
+2. Now we have the code which is in the multiple branches
+3. So in every branch, we wrote the docker file in which we build the image and push that into registry
+4. Here we have code in so many branches so we are using multi branch pipeline to automate
+5. In this every jenkins file is executed from all the branches so the image is build and pushed that into registry
+6. And we have the main branch
+7. Here it will tell to execute the manifest files So that the pods, services, deployments will be created
