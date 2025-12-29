@@ -1,0 +1,72 @@
+Terraform
+
+* It is a IaS tool
+* Remember IPAD
+* Terraform init
+* Terraform plan
+* Terraform apply
+* Terraform destroy
+* terraform.tfstate will be created after we run Terraform apply command
+* terraform.tfstate stores the real AWS EC2 details (IDs, IPs, volumes) and links them permanently to your Terraform code.
+
+* Take an ec2 instance with t2.micro
+* And go to root user
+
+    1  sudo yum install -y yum-utils shadow-utils
+    2  sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+    3  sudo yum install terraform
+(Install terraform)
+
+    4  vim provider.tf
+(
+provider "aws" {
+region = "ap-south-1"
+}
+)
+(We are specifying the cloud provider with its region)
+
+    5  vim resource.tf
+(
+resource "aws_instance" "myserver" {
+
+tags = {
+Name = "flm-terraform-server"
+Environment = "Dev"
+Client = "AT&T"
+}
+
+ami = "ami-00ca570c1b6d79f36"
+
+instance_type = "t2.micro"
+
+key_name = "new-mac-key"
+
+availability_zone = "ap-south-1b"
+
+root_block_device {
+volume_size = 20
+}
+
+}
+)
+
+(We have to specify the resources of an instance to launch)
+(Ami ID should be same as the cloud provider region which we specified in the provider.tf file)
+("myserver" is the label here)
+(Environment and Client are the optional fields)
+(If we did not specify availability_zone then it will take any availability_zone from the region)
+
+    7  terraform init
+(To initialize the terraform)
+
+   10  terraform plan
+(If there are any error, then it will tell)
+(Here we may get Error: No valid credential sources found)
+(We get this because we don’t have permission to create an instance so we have to assign an IAM role permission to our ec2 server with fullec2permission then we can perform this command again then we don’t get error)
+
+   13  terraform apply
+(To create the instance or to apply the terraform file to create the instance)
+
+   15  terraform destroy
+(To terminate the instance which is created above)
+
