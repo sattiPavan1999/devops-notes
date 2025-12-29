@@ -9,6 +9,10 @@ Terraform
 * terraform.tfstate will be created after we run Terraform apply command
 * terraform.tfstate stores the real AWS EC2 details (IDs, IPs, volumes) and links them permanently to your Terraform code.
 
+difference b/w resource.tf and terraform.tfstate :
+* resource.tf is in desired state
+* terraform.tfstate stores the live infra details like all the deatials in resource.tf along with public ip, private ip, etc....
+
 * Take an ec2 instance with t2.micro
 * And go to root user
 
