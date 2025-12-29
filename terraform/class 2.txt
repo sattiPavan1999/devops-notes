@@ -3,6 +3,15 @@
     3  sudo yum install terraform
 (Install terraform)
 
+
+USER permission
+
+    4  mkdir myfiles
+    5  cd myfiles/
+    6  aws configure
+(here give AWS Access Key ID, and passkey which we got from iam user setup from aws)
+(so that we can create instances)
+
     4  vim provider.tf
 (
 provider "aws" {
