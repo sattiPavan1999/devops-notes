@@ -98,4 +98,100 @@ volume_size = 20
 (we can see the previous terraform.tfstate file values like Name = "flm-terraform-server" )
 (It is a backup file)
 
-   
+   19  terraform destroy --auto-approve
+
+
+
+variables 
+
+
+
+   21  vim provider.tf
+(
+provider "aws" {
+  region = "ap-south-1"
+}
+)
+
+   22  vim resource.tf 
+(
+resource "aws_instance" "myserver" {
+
+  tags = {
+    Name = var.iname
+  }
+
+  ami = var.ami_id
+
+  instance_type = var.itype
+
+  count = var.icount
+
+  key_name = "new-mac-key"
+
+  root_block_device {
+    volume_size = var.ivolume
+  }
+
+}
+)
+
+   23  vim variable.tf
+(
+variable "iname" {
+  description = "this is instance name"
+  type        = string
+  default     = "swiggy-instance"
+}
+
+variable "ami_id" {
+  description = "this is ami Id"
+  type        = string
+  default     = "ami-00ca570c1b6d79f36"
+}
+
+variable "itype" {
+  description = "this is instance type"
+  type        = string
+  default     = "t2.micro"
+}
+
+variable "icount" {
+  description = "this is instance count"
+  type        = number
+  default     = 3
+}
+
+variable "ivolume" {
+  description = "this is volume"
+  type        = number
+  default     = 10
+}
+
+)
+
+   26  terraform fmt
+
+   29  terraform plan
+
+   30  terraform apply --auto-approve
+
+
+
+output
+
+
+   38  vim out.tf
+(
+output "myoutput" {
+value = [aws_instance.myserver[0].id, aws_instance.myserver[1].id,  aws_instance.myserver[2].id]
+}
+)
+   39  terraform apply --auto-approve
+(we will get the IDs of the instances)
+
+   42  terraform destroy --target=aws_instance.myserver[1] --auto-approve
+(To terminate the instance 1 out of 3 instances)
+
+  43  terraform destroy  --auto-approve
+(To terminate all the instances)
