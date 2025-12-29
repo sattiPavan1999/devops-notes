@@ -1,0 +1,19 @@
+    1  sudo yum install -y yum-utils shadow-utils
+    2  sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+    3  sudo yum install terraform
+    4  mkdir myfiles
+    5  cd myfiles/
+    6  aws configure
+    7  vim provider.tf
+    8  vim resource.tf
+    9  terraform init
+   10  terraform plan
+   11  terraform apply --auto-approve
+   12  vim resource.tf
+   13  terraform plan
+   14  terraform apply --auto-approve
+   15  terraform plan
+   16  cat terraform.tfstate
+   17  ll
+   18  cat terraform.tfstate.backup 
+   19  history
