@@ -63,6 +63,9 @@ volume_size = 20
     7  terraform init
 (To initialize the terraform)
 
+    8  terraform fmt
+(It will apply the indentation to all the tf files)
+
    10  terraform plan
 (If there are any error, then it will tell)
 (Here we may get Error: No valid credential sources found)
