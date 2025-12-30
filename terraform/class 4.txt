@@ -5,6 +5,8 @@ Workspace
 * If we want another instance to be created without modifying the resource.tf file (by increasing count) then 
 we have to create a new workspace and we have to run terraform apply in this workspace so that another instance will be created
 
+* whenever we want to delete the entire workspace, first we have to delete or destroy all the resources in that workspace then we have to delete ws
+
 
 
 vim provider.tf
@@ -62,4 +64,84 @@ volume_size = 20
 (switched to default)
    33  terraform apply --auto-approve
 (instance is created in default)
+
+terraform workspace select flm-ws
+terraform destroy --auto-approve
+
+terraform workspace select dev-ws
+terraform destroy --auto-approve
+
+terraform workspace select default
+terraform destroy --auto-approve
+
+
+
+
+
+terraform locals
+(If I want different instance types for different workspace then we use tf locals)
+
+
+vim provider.tf
+(
+provider "aws" {
+  region = "ap-south-1"
+}
+
+)
+
+
+vim locals.tf
+(
+locals {
+    instance_types = {
+        dev = "t2.micro"
+        test = "t2.small"
+        prod = "t3.nano"
+    }
+}
+)
+
+
+vim resource.tf
+(
+resource "aws_instance" "myserver" {
+
+  tags = {
+    Name        = "${terraform.workspace}-server"
+    Environment = "${terraform.workspace}"
+    Client      = "${terraform.workspace}-AT&T"
+  }
+
+  ami = "ami-00ca570c1b6d79f36"
+
+  instance_type = local.instance_types[terraform.workspace]
+
+  key_name = "new-mac-key"
+
+  root_block_device {
+    volume_size = 20
+  }
+
+}
+)
+
+(Name and instance type will be assigned based on workspace)
+
+   21  terraform workspace new dev
+   22  terraform plan
+   23  terraform apply --auto-approve
+   24  terraform destroy --auto-approve
+
+   21  terraform workspace new test
+   22  terraform plan
+   23  terraform apply --auto-approve
+   24  terraform destroy --auto-approve
+
+   21  terraform workspace new prod
+   22  terraform plan
+   23  terraform apply --auto-approve
+   24  terraform destroy --auto-approve
+
+
 
