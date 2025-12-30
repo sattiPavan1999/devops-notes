@@ -17,6 +17,11 @@ If you want to do it on root Go to root and
 
 4. mkdir myfiles
 5. cd myfiles
+
+
+multiple instances with different names
+
+
 6. vim  provider.tf
 (
 provider "aws" {
@@ -149,3 +154,73 @@ resource "aws_instance" "myserver" {
 
 4. terraform plan
 5. terraform apply —auto-approve
+6. terraform destroy --auto-approve
+
+
+
+
+
+Alias and Providers
+(If I want one server to be created in mumbai and another in another location)
+
+6. vim  provider.tf
+(
+provider "aws" {
+  region = "ap-south-1"
+  alias = "mumbai"
+}
+
+provider "aws" {
+  region = "us-east-1"
+  alias = "us"
+}
+)
+(we are taking two different regions and assigning the names as alias to identify)
+
+7. vim  resource.tf
+(
+resource "aws_instance" "myindiaserver" {
+  provider = aws.mumbai
+  tags = {
+    Name        = "india-server"
+    Environment = "Dev"
+    Client      = "flm"
+  }
+
+  ami = "ami-00ca570c1b6d79f36"
+
+  instance_type = "t2.micro"
+
+  key_name = "new-mac-key"
+
+}
+
+
+resource "aws_instance" "myusserver" {
+  provider = aws.us
+  tags = {
+    Name        = "us-server"
+    Environment = "Dev-2"
+    Client      = "flm-2"
+  }
+
+  ami = "ami-068c0051b15cdb816"
+
+  instance_type = "t2.micro"
+
+  key_name = "us-east-1-key-pair"
+
+}
+)
+(Here the ami and key_name should be different from region to region)
+(provider is used to identify in which region the instance should be created)
+(give labels and names differently to identify)
+
+4. terraform plan
+5. terraform apply —auto-approve
+6. terraform destroy --auto-approve --target=aws_instance.myusserver
+(To terminate only us server)
+7. terraform destroy --auto-approve
+(To terminate all the servers)
+
+
