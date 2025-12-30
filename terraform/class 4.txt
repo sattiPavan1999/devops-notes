@@ -1,0 +1,65 @@
+Workspace
+
+* bydefault there is a default workspace
+* whenever we created the instance it will be created in the default workspace
+* If we want another instance to be created without modifying the resource.tf file (by increasing count) then 
+we have to create a new workspace and we have to run terraform apply in this workspace so that another instance will be created
+
+
+
+vim provider.tf
+(
+provider "aws" {
+  region = "ap-south-1"
+}
+
+)
+
+vim resource.tf
+(
+resource "aws_instance" "myserver" {
+
+tags = {
+Name = "${terraform.workspace}-server"
+Environment = "Dev"
+Client = "AT&T"
+}
+
+ami = "ami-00ca570c1b6d79f36"
+
+instance_type = "t2.micro"
+
+key_name = "new-mac-key"
+
+root_block_device {
+volume_size = 20
+}
+
+}
+)
+
+(Name will be assigned based on workspace)
+
+   22  terraform workspace show
+(current workspace)
+
+   23  terraform workspace list
+(terraform workspace list)
+
+   24  terraform workspace new flm-ws
+(creates flm-ws workspace and switched to it)
+
+   28  terraform workspace new dev-ws
+   29  terraform apply --auto-approve
+(instance is created in dev-ws)
+
+   30  terraform workspace select flm-ws
+(switched to flm-ws)
+   31  terraform apply --auto-approve
+(instance is created in flm-ws)
+
+   32  terraform workspace select default
+(switched to default)
+   33  terraform apply --auto-approve
+(instance is created in default)
+
