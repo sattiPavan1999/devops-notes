@@ -1,0 +1,74 @@
+
+If we are using vs code then
+1. Setup ssh connection
+2. Go to open new folder and select ec2-user path and run this in terminal :    sudo chmod 777 /root
+3. It is give permissions to root user
+4. Now we can continue to install terraform in root user as we know
+
+
+If you want to do it on root Go to root and
+
+1. sudo -i 
+
+1. sudo yum install -y yum-utils shadow-utils
+2. sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+3. sudo yum install terraform
+(Install terraform)
+
+4. mkdir myfiles
+5. cd myfiles
+6. vim  provider.tf
+(
+provider "aws" {
+  region = "ap-south-1"
+}
+)
+
+7. vim  resource.tf
+(
+resource "aws_instance" "myserver" {
+
+  tags = {
+    Name        = var.iname[count.index]
+    Environment = "Dev"
+    Client      = "flm"
+  }
+
+  ami = "ami-00ca570c1b6d79f36"
+
+  instance_type = "t2.micro"
+
+  key_name = "new-mac-key"
+
+  count = var.icount
+}
+)
+
+1. vim variable.tf
+(
+variable "iname" {
+    type = list(string)
+    default = ["server-1", "server-2", "server-3"]
+}
+
+variable "icount" {
+    type = number
+    default = 3
+}
+)
+(We can set the name of the instances as "server-1", "server-2", "server-3")
+
+2.  vim output.tf
+(
+output "myoutput" {
+    value = [aws_instance.myserver[0].public_ip,
+    aws_instance.myserver[1].private_ip,
+    aws_instance.myserver[2].public_dns]
+}
+)
+(We can see the output of the following)
+(Here myserver is the label)
+
+3. terraform init
+4. terraform plan
+5. terraform apply —auto-approve
