@@ -72,3 +72,4 @@ output "myoutput" {
 3. terraform init
 4. terraform plan
 5. terraform apply —auto-approve
+6. terraform destroy --auto-approve
