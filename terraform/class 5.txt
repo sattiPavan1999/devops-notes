@@ -206,3 +206,4 @@ variable "ports" {
 (Here we are using dynamic block to reduce the repetative code)
 
   40  terraform apply --auto-approve
+  41  terraform destroy --auto-approve
