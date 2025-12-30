@@ -1,1 +1,129 @@
 
+Imports
+(If anyone launched the ec2 instance manually, we still can manage it through terraform import)
+
+* launch one instance manually other than main instance
+and do the below
+   34 install terraform
+
+   35  mkdir myfiles
+   36  cd myfiles
+   37  vim provider.tf
+(
+provider "aws" {
+    region = "ap-south-1"
+}
+
+)
+   38  vim main.tf
+(
+resource "aws_instance" "myinstance" {
+ami = "ami-00ca570c1b6d79f36"
+instance_type = "t2.micro"
+tags = {
+Name = "terraform-instance"
+}
+}
+
+)
+   39  terraform import aws_instance.myinstance i-0396c82f32ea415e3
+(Now we are importing the instance by giving instance_name.instance_label instance_id)
+(we get instance_id from aws UI)
+
+   40  ll
+(Now we can see the state file means now we can able to do the changes to that instance)
+
+   41  terraform plan
+   42  terraform apply --auto-approve
+
+
+
+
+
+terraform taint
+(If we want to recreate any resource then we have to apply taint to that resource)
+(so after that if we run the apply command then the resource will be recreated)
+
+   50  terraform state list
+(we get resources list)
+(currently we have one instance)
+(output shown like this : aws_instance.myinstance)
+
+   51  terraform taint aws_instance.myinstance
+(we have to attach taint to this resource )
+
+   52  terraform apply --auto-approve
+(run this)
+(so that old one will be deleted and new one will be created)
+
+
+terraform replace
+(It is the new alternative to the terraform taint)
+
+50  terraform state list
+(we get resources list)
+(currently we have one instance)
+(output shown like this : aws_instance.myinstance)
+
+51  terraform apply --auto-approve -replace="aws_instance.myinstance"
+(we can directly run this replace command to recreate the resource)
+
+
+
+
+
+lifecycle
+
+
+
+37  vim provider.tf
+(
+provider "aws" {
+    region = "ap-south-1"
+}
+
+)
+   38  vim main.tf
+(
+resource "aws_instance" "myinstance" {
+ami = "ami-00ca570c1b6d79f36"
+instance_type = "t2.micro"
+tags = {
+Name = "hello"
+}
+lifecycle {
+create_before_destroy = true
+}
+}
+)
+(Here the resources will be destroyed after new resource is created)
+
+
+51  terraform apply --auto-approve -replace="aws_instance.myinstance"
+(we can directly run this replace command to recreate the resource)
+
+
+
+
+38  vim main.tf
+(
+resource "aws_instance" "myinstance" {
+ami = "ami-00ca570c1b6d79f36"
+instance_type = "t2.micro"
+tags = {
+Name = "hello123"
+}
+lifecycle {
+ignore_changes = [tags]
+}
+}
+)
+(If we give this, then if anyone tried to changes anything under tags then the change wont reflect)
+(we can give same for ami, instance_type, etc...)
+
+51  terraform apply --auto-approve -replace="aws_instance.myinstance"
+
+
+
+
+
