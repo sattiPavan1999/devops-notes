@@ -154,5 +154,55 @@ Dynamic Blocks
 (Dynamic Blocks used to reduce the repetative code)
 
 
+37  vim provider.tf
+(
+provider "aws" {
+    region = "ap-south-1"
+}
 
+)
+   38  vim main.tf
+(
+resource "aws_instance" "myinstance" {
+ami = "ami-00ca570c1b6d79f36"
+instance_type = "t2.micro"
+tags = {
+Name = "hello"
+}
+vpc_security_group_ids = [aws_security_group.mysg.id]
+}
+)
 
+  39  vim security.tf
+(
+resource "aws_security_group" "mysg" {
+    name = "terraform-sg-3"
+    description = "it is created using tf"
+
+    dynamic "ingress" {
+        for_each = var.ports
+        content{
+            from_port = ingress.value
+            to_port = ingress.value
+            protocol = "tcp"
+            cidr_blocks = ["0.0.0.0/0"]
+        }
+    }
+
+    egress {
+        protocol = "-1"
+        from_port = 0
+        to_port = 0
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+}
+
+variable "ports" {
+    type = list(any)
+    default = [22,80,443,8080,9000,50000]
+}
+
+)
+(Here we are using dynamic block to reduce the repetative code)
+
+  40  terraform apply --auto-approve
