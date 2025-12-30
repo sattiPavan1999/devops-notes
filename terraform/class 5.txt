@@ -126,4 +126,26 @@ ignore_changes = [tags]
 
 
 
+38  vim main.tf
+(
+resource "aws_instance" "myinstance" {
+ami = "ami-00ca570c1b6d79f36"
+instance_type = "t2.micro"
+tags = {
+Name = "hello123"
+}
+lifecycle {
+prevent_destroy = true
+}
+}
+)
+(If we give this, then no one can destroy the instance)
+
+
+51  terraform destroy
+(we will get error because there is a prevent_destroy)
+
+
+
+
 
