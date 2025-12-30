@@ -143,5 +143,69 @@ resource "aws_instance" "myserver" {
    23  terraform apply --auto-approve
    24  terraform destroy --auto-approve
 
+terraform workspace select default
+terraform workspace delete dev
+(to delete the workspace)
+terraform workspace delete test
+terraform workspace delete prod
 
 
+
+
+terraform refresh
+
+
+vim provider.tf
+(
+provider "aws" {
+  region = "ap-south-1"
+}
+
+)
+
+
+vim resource.tf
+(
+resource "aws_instance" "myserver" {
+
+  tags = {
+    Name        = "${terraform.workspace}-server"
+    Environment = "${terraform.workspace}"
+    Client      = "${terraform.workspace}-AT&T"
+  }
+
+  ami = "ami-00ca570c1b6d79f36"
+
+  instance_type = "t2.micro"
+
+  key_name = "new-mac-key"
+
+  root_block_device {
+    volume_size = 20
+  }
+
+  count = 2
+
+}
+)
+
+
+   30  terraform apply --auto-approve
+(creates two instances)
+
+   31  terraform state list
+(list of resources)
+(we will see 2 resources)
+
+* delete a server manually in the aws (terminate from aws)
+
+  31  terraform state list
+  (If we run this)
+  (we still see 2 resources)
+  (It is not updated)
+
+   32  terraform apply -refresh-only
+(Now it will refresh and save it in state file)
+
+   33  terraform state list
+(we see one resource only which is correct)
