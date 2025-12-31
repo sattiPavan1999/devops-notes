@@ -174,6 +174,8 @@ resource "aws_instance" "myserver" {
    36  terraform state list
 (we can see aws_instance.myserver, aws_key_pair.mykey, aws_security_group.mysg in the list)
 
+   37  terraform destroy --auto-approve
+
 To verify, connect to the new instance and check if httpd and git are installed in the new instance or not.
 
 NOTE: If we want to use existing key-pair, then go to pem file in our computer and copy the data and 
@@ -181,5 +183,55 @@ create a new file in our local and give this new file path in private_key = file
 
 
 
+
+
+
+file Provisioner
+( The file provisioner is used to copy files or directories from our local to newly created instance)
+
+0. All the required steps are same as above 
+
+1. vim resource.tf 
+(
+resource "aws_key_pair" "mykey" {
+  key_name = "tf-key-pair"
+  public_key = file("/root/.ssh/id_rsa.pub")
+}
+
+resource "aws_instance" "myserver" {
+
+  tags = {
+    Name        = "server-1"
+    Environment = "Dev"
+    Client      = "flm"
+  }
+
+  ami = "ami-00ca570c1b6d79f36"
+
+  instance_type = "t2.micro"
+
+  vpc_security_group_ids = [aws_security_group.mysg.id]
+
+  key_name = aws_key_pair.mykey.key_name
+
+  provisioner "file" {
+    connection {
+      type = "ssh"
+      user = "ec2-user"
+      host = self.public_ip
+      private_key = file("/root/.ssh/id_rsa")
+    }
+    source = "/root/security.tf"
+    destination = "security.tf"
+  }
+}
+
+)
+(here we are copying the security.tf file to newly created server)
+
+29  terraform apply --auto-approve
+
+
+(To verify, connect to the new instance and check if the file is there or not)
 
 
