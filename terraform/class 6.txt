@@ -1,0 +1,185 @@
+provisioners
+( Provisioners in Terraform are used to run scripts or commands on a resource after it is created (or before it’s destroyed). )
+types of provisioners
+1. local provisioners : Runs a command on the machine where Terraform is executed.
+2. remote provisioners : Runs commands inside the created resource (VM).
+
+
+    1  sudo yum install -y yum-utils shadow-utils
+    2  sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+    3  sudo yum install terraform
+(install terraform)
+
+
+
+local provisioners 
+
+
+
+    4  vim provider.tf
+(
+provider "aws" {
+  region = "ap-south-1"
+}
+)
+
+    5  vim resource.tf
+(
+resource "aws_instance" "myserver" {
+
+  tags = {
+    Name        = "server-1"
+    Environment = "Dev"
+    Client      = "flm"
+  }
+
+  ami = "ami-00ca570c1b6d79f36"
+
+  instance_type = "t2.micro"
+
+  key_name = "new-mac-key"
+
+  provisioner "local-exec" {
+    command = "echo 'Instance created with an ID: ${aws_instance.myserver.id}' >> server-id.txt"
+  }
+}
+ 
+)
+(provisioner must be placed inside a resource block)
+( >> server-id.txt meaning is to create a txt file )
+  
+   13  terraform init
+   14  terraform plan
+   15  terraform apply --auto-approve
+   16  ls
+(we can see server-id.txt which is created through local provisioners)
+   17  cat server-id.txt
+   18  terraform destroy --auto-approve
+
+
+remote provisioners
+(we need to setup ssh connection if we want to execute any command in the created resource)
+(we have command in our local system, but we want to exectute that in remote or created resource, 
+    so we need to setup ssh connection between these two servers)
+( There will be a separate resource to create a new key pair)
+
+
+   
+
+   23  ssh-keygen
+(create a ssh key)
+(enter, enter, enter)
+
+   24  cd .ssh
+(to to .ssh)
+
+   25  ls
+(we will see public and private key)
+
+   26  pwd
+(to know the path)
+
+   27  cd ../
+(to to root)
+
+19  vim provider.tf
+(
+provider "aws" {
+  region = "ap-south-1"
+}
+)
+
+
+  33  vim security.tf
+(
+resource "aws_security_group" "mysg" {
+    name = "terraform-sg-3"
+    description = "it is created using tf"
+
+    ingress {
+        protocol = "tcp"
+        from_port = 22
+        to_port = 22
+        cidr_blocks = ["0.0.0.0/0"]
+
+    }
+
+    egress {
+        protocol = "-1"
+        from_port = 0
+        to_port = 0
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+} 
+)
+
+(create new security group)
+
+
+   20  vim resource.tf
+(
+
+resource "aws_key_pair" "mykey" {
+  key_name = "tf-key-pair"
+  public_key = file("/root/.ssh/id_rsa.pub")
+}
+
+resource "aws_instance" "myserver" {
+
+  tags = {
+    Name        = "server-1"
+    Environment = "Dev"
+    Client      = "flm"
+  }
+
+  ami = "ami-00ca570c1b6d79f36"
+
+  instance_type = "t2.micro"
+
+  vpc_security_group_ids = [aws_security_group.mysg.id]
+
+  key_name = aws_key_pair.mykey.key_name
+
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ec2-user"
+      host = self.public_ip
+      private_key = file("/root/.ssh/id_rsa")
+    }
+    inline = [
+      "echo 'This command is executing on remote'",
+      "sudo yum install httpd -y",
+      "sudo yum install start httpd",
+      "sudo yum install enable httpd",
+      "sudo yum install git -y"
+    ]
+  }
+}
+ 
+)
+
+(To setup the connection between two servers, we need to give public-ip, username, key-pair, port 22)
+(so we are giving all these in the resource.tf)
+(username is ec2-user)
+(here we are creating the new key-pair by attaching the ssh public_key)
+(we are attaching the new security groups with inbound rule of 22)
+(we are attaching the key-pair as key_name that we created)
+(In provisioner, we are first setting up the connection between local and remote servers by giving ssh private key of our local server to new resource/instance)
+( host = self.public_ip means the created resource public Ip will be taken )
+   
+
+   29  terraform apply --auto-approve
+
+   36  terraform state list
+(we can see aws_instance.myserver, aws_key_pair.mykey, aws_security_group.mysg in the list)
+
+To verify, connect to the new instance and check if httpd and git are installed in the new instance or not.
+
+NOTE: If we want to use existing key-pair, then go to pem file in our computer and copy the data and 
+create a new file in our local and give this new file path in private_key = file("")
+
+
+
+
+
