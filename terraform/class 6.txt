@@ -231,7 +231,11 @@ resource "aws_instance" "myserver" {
 
 29  terraform apply --auto-approve
 
-
 (To verify, connect to the new instance and check if the file is there or not)
+
+
+30 terraform destroy --auto-approve
+
+
 
 
