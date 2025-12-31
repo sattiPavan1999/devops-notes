@@ -1,1 +1,53 @@
+sertup IAM permission to ec2 instance
+
+    1  aws s3 ls
+(list of buckets)
+
+    3  aws s3 mb s3://pavan.s3.v1
+(make bucket with unique name "pavan.s3.v1")
+
+    4  aws s3 ls
+
+    5  aws s3 mb s3://pavan.s3.v2
+
+    7  aws s3 rb s3://pavan.s3.v2
+(remove bucket)
+
+    9  touch index.html main.js
+(create files)
+
+   11  aws s3 cp index.html s3://pavan.s3.v1
+(copy files to bucket)
+
+   12  aws s3 cp main.js s3://pavan.s3.v1
+(copy files to bucket)
+
+   14  aws s3 ls pavan.s3.v1
+(lsit of files in this bucket)
+
+   16  aws s3 cp s3://pavan.s3.v1/11-MICRO-SERVICES-PROJECT.pdf .
+(get the file from bucket to current server or instance)
+(add new file in aws s3 through UI and run this command here)
+(get this url s3://pavan.s3.v1/11-MICRO-SERVICES-PROJECT.pdf from copy s3 url)
+
+   19  aws s3 rb s3://pavan.s3.v1
+(try to remove bucket)
+(we get an error because the bucket is not empty)
+
+   20  aws s3 rm s3://pavan.s3.v1 --recursive
+(to make the bucket empty)
+
+   21  aws s3 rb s3://pavan.s3.v1
+(now we can delete the bucket)
+
+
+
+
+cross region replication
+(bucket to bucket replication)
+
+if we upload any file in one bucket then it will be replicated to another bucket
+
+we have go into the bucket1 and go to management and then create replication rule
+same for bucket2
 
