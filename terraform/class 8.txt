@@ -1,0 +1,42 @@
+s3 with terraform
+
+
+launch instance with c7i-flex.large
+
+    1  sudo yum install -y yum-utils shadow-utils
+    2  sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+    3  sudo yum install terraform
+
+    4  vim provider.tf
+(
+ provider "aws" {
+  region = "ap-south-1"
+}
+)
+
+    5  vim resource.tf
+(
+resource "aws_s3_bucket" "mybucket" {
+  bucket = var.bucket_name
+}
+
+resource "aws_s3_bucket_versioning" "bucket_version" {
+  bucket = aws_s3_bucket.mybucket.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+variable "bucket_name" {
+  type    = string
+  default = "pavan.s3.v2"
+}
+)
+(create s3 bucket with tf)
+    
+   10  terraform fmt
+   11  terraform apply --auto-approve
+
+   16  ll
+
+
