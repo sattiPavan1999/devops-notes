@@ -191,6 +191,10 @@ sec_group = "module-sec-group"
    58  and then we apply terraform apply --auto-approve
 
 
+run this in all the required modules
+terraform destroy --auto-approve
+
+
 
 NOTE: If u want to modify anything on prod then 
    55  cd ../
