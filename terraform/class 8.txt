@@ -1,4 +1,5 @@
 s3 with terraform
+(we upload state file and war file which we got after building into s3 bucket)
 
 
 launch instance with c7i-flex.large
@@ -38,5 +39,121 @@ variable "bucket_name" {
    11  terraform apply --auto-approve
 
    16  ll
+
+
+   11  vim backend.tf
+(
+terraform {
+backend "s3" {
+bucket = "pavan.s3.v2"
+key = "prod/terraform.tfstate"
+region = "ap-south-1"
+}
+}
+)
+(here we are storing the .tfstate file in our s3 bucket)
+
+   12  terraform init
+(apply this command so that .tfstate will be stored whenever it is updated)
+
+   15  vim server.tf
+(
+resource "aws_instance" "myserver" {
+
+  tags = {
+    Name = "server-1"
+  }
+
+  ami = "ami-00ca570c1b6d79f36"
+
+  instance_type = "t2.micro"
+
+}
+)
+(create a ec2 server)
+
+   16  terraform plan
+   17  terraform apply --auto-approve
+(apply this command so that the .tfstate file will be updated and .tfstate file will be stored in the s3 bucket)
+
+
+
+   18  vim jenkins.sh
+(
+sudo yum update –y
+sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+sudo yum upgrade
+sudo yum install java-17-amazon-corretto -y
+sudo yum install jenkins git -y
+sudo systemctl enable jenkins
+sudo systemctl start jenkins
+sudo systemctl status jenkins
+sudo mkdir -p /var/tmp_disk
+sudo chmod 1777 /var/tmp_disk
+sudo mount --bind /var/tmp_disk /tmp
+echo '/var/tmp_disk /tmp none bind 0 0' | sudo tee -a /etc/fstab
+sudo systemctl mask tmp.mount
+df -h /tmp
+sudo systemctl restart jenkins
+)
+(install jenkins and setup)
+(install pipeline stage view and S3 publisher from plugins and restart the jenkins)
+
+
+NOTE:
+* go to tools and setup maven by adding name as "mymaven"
+* while selecting the script to upload war file into s3 bucket. first go to pipeline syntax and
+  select s3Upload: publish artifacts to s3 bucket
+  * give s3 profile: mybucket
+  * select files to upload option:
+    * source: target/myweb-8.7.2.war
+    * Destination bucket: we can give pavan.s3.v2 which is there in our s3
+    * Bucket Region: ap-south-1
+    * select No upload on build failure
+    * click generate pipeline script and paste in the pipeline
+
+* we will get target/myweb-8.7.2.war from 
+    * cd /var/lib/jenkins/workspace/
+    * cd tf-1/target/
+    * ll
+
+* Go to system and setup Amazon S3 profiles
+    * Profile name : mybucket
+    * Access key and Secret key : we will get from IAM 
+    * go to IAM users
+    * selet the user which should have AdministratorAccess or s3fullaccess and ec2fullaccess
+    * go to Access keys -> create access key -> slect thirt party -> click checkbox below -> create access key
+    * after giving keys in jenkins click on test connection
+
+NOTE: here tf-1 is our pipeline name
+
+
+
+pipeline {
+    agent any
+    tools {
+        maven "mymaven"
+    }
+    stages {
+        stage('code') {
+            steps {
+                git 'https://github.com/sattiPavan1999/one.git'
+            }
+        }
+        stage('build') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+        stage('artifact') {
+            steps {
+                s3Upload consoleLogLevel: 'INFO', dontSetBuildResultOnFailure: false, dontWaitForConcurrentBuildCompletion: false, entries: [[bucket: 'pavan.s3.v2', excludedFile: '', flatten: false, gzipFiles: false, keepForever: false, managedArtifacts: false, noUploadOnFailure: true, selectedRegion: 'ap-south-1', showDirectlyInBrowser: false, sourceFile: 'target/myweb-8.7.2.war', storageClass: 'STANDARD', uploadFromSlave: false, useServerSideEncryption: false]], pluginFailureResultConstraint: 'FAILURE', profileName: 'mybucket', userMetadata: []
+            }
+        }
+    }
+}
+
+
 
 
