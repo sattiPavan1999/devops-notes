@@ -1,0 +1,200 @@
+state file locking
+
+
+    1  sudo yum install -y yum-utils shadow-utils
+    2  sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+    3  sudo yum install terraform
+
+    4  vim provider.tf
+(
+ provider "aws" {
+  region = "ap-south-1"
+}
+)
+    5  vim resource.tf
+(
+ resource "aws_instance" "myserver" {
+
+  tags = {
+    Name = "server-1"
+  }
+
+  ami = "ami-00ca570c1b6d79f36"
+
+  instance_type = "t2.micro"
+
+}
+)
+    6  vim backend.tf
+(
+terraform {
+backend "s3" {
+bucket = "pavan.s3.v2"
+key = "prod/terraform.tfstate"
+region = "ap-south-1"
+use_lockfile = true
+}
+}
+)
+    7  terraform init
+    8  terraform plan
+    9  terraform apply --auto-approve
+
+NOTE: connect this same server in another tab and modify the resource.tf by changing instance_type and run apply command
+then we will get an error because the above instance is getting created.
+If the above instance is created successfully then it can modify this instance
+
+
+
+
+
+modules
+
+
+   22  mkdir modules
+
+   23  cd modules/
+   24  mkdir dev test prod
+   25  ls
+
+   26  cd dev
+   27  mkdir instance security bucket
+   28  cd bucket/
+   29  vim main.tf
+(
+ resource "aws_s3_bucket" "mybucket" {
+  bucket = var.bucket_name
+}
+
+resource "aws_s3_bucket_versioning" "bucket_version" {
+  bucket = aws_s3_bucket.mybucket.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+)
+   30  vim variable.tf
+(
+variable "bucket_name" {
+  description = "this is my bucket name"
+  type    = string
+}
+)
+
+   31  cd ../
+   32  cd instance/
+   33  vim main.tf
+(
+ resource "aws_instance" "myserver" {
+
+  tags = {
+    Name = var.iname
+  }
+
+  ami = var.ami_id
+
+  instance_type = var.itype
+}
+)
+
+   34  vim variable.tf
+(
+ variable "iname" {
+type = string
+}
+
+variable "ami_id" {
+type = string
+}
+
+variable "itype" {
+type = string
+}
+)
+
+   35  cd ../
+   36  cd security/
+   39  vim main.tf
+(
+ resource "aws_security_group" "mysg" {
+name = var.sec_group
+description = "this is created using modules"
+
+ingress {
+        protocol = "-1"
+        from_port = 0
+        to_port = 0
+        cidr_blocks = ["0.0.0.0/0"]
+
+    }
+egress {
+        protocol = "-1"
+        from_port = 0
+        to_port = 0
+        cidr_blocks = ["0.0.0.0/0"]
+
+    }
+}
+)
+   40  vim variable.tf
+(
+ variable "sec_group" {
+type = string
+}
+)
+
+   41  cd ../
+   44  vim provider.tf
+(
+ provider "aws" {
+  region = "ap-south-1"
+}
+)
+   45  vim main.tf
+(
+module "instance_module" {
+source = "./instance/"
+iname = "module-server"
+itype = "t2.micro"
+ami_id = "ami-00ca570c1b6d79f36"
+}
+
+module "bucket_module" {
+source = "./bucket/"
+bucket_name = "pavan.s3.v3"
+}
+
+module "security_module" {
+source = "./security/"
+sec_group = "module-sec-group"
+}
+)
+
+
+   52  terraform init
+   53  terraform plan
+   54  terraform apply --auto-approve
+   
+   55  cd ../
+   56  cd prod/
+   57  terraform workspace new prod
+(follow the similar process here also as dev)
+   
+   58  and then we apply terraform apply --auto-approve
+
+
+   55  cd ../
+   56  cd test/
+   57  terraform workspace new test
+(follow the similar process here also as dev)
+   
+   58  and then we apply terraform apply --auto-approve
+
+
+
+NOTE: If u want to modify anything on prod then 
+   55  cd ../
+   56  cd prod/
+   57  terraform workspace select prod
+(do the changes and apply)
+
