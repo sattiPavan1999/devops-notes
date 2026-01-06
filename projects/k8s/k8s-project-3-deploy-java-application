@@ -1,1 +1,90 @@
+launch an instance with m7i-flex and attach iam user with admin permissions
 
+install terraform :
+sudo yum install -y yum-utils shadow-utils
+sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+sudo yum install terraform
+
+
+git clone https://github.com/devops0014/k8s-project.git
+cd k8s-project/
+git checkout master 
+cd Eks-terraform/
+vim backend.tf
+(give ur s3 bucket name)
+vim main.tf
+(modify the instance type)
+terraform init
+terraform plan
+terraform apply --auto-approve
+
+NOTE: it takes some time so connect the server through aws and do the below in parllel
+
+on server:
+vim jenkins.sh
+(command to install jenkins)
+
+sh jenkins.sh
+
+setup the jenkins dashboard
+
+jenkins:
+install plugins : Pipeline: Stage View, S3 publisher, SonarQube Scanner, Docker Pipeline, OWASP Dependency-Check, Kubernetes, Kubernetes CLI
+and restart the jenkins
+go to system -> setup SonarQube installations by giving token from sonarqube url
+(login to sonarqube with port 9000)
+go to tools -> setup SonarQube Scanner installations and Maven installations
+setup quality gates in sonarqube by going into webhooks with url similar to this : http://43.205.116.18:8080/sonarqube-webhook/
+give same credentials as sonarqube
+
+yum install docker -y && systemctl start docker
+chmod 777 /var/run/docker.sock
+
+docker run -d --name sonar-container -p 9000:9000 sonarqube:lts-community
+
+jenkins:
+create a pipeline
+
+
+pipeline {
+    agent any
+    tools {
+        maven "mymaven"
+    }
+    stages {
+        stage('cleanWs') {
+            steps {
+                cleanWs()
+            }
+        }
+        stage('code') {
+            steps {
+                git 'https://github.com/sattiPavan1999/dockerwebapp.git'
+            }
+        }
+        stage('CQA') {
+            steps {
+                withSonarQubeEnv('mysonar') {
+                    sh """
+                    mvn clean verify \
+                    org.sonarsource.scanner.maven:sonar-maven-plugin:3.10.0.2594:sonar \
+                    -Dsonar.projectKey=project-3-k8s
+                    """
+                }
+            }
+        }
+        stage('quality gates') {
+            steps {
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-ID'
+                }
+            }
+        }
+        stage('build') {
+            steps {
+                sh 'mvn clean package'
+                sh 'cp -r target Docker-app'
+            }
+        }
+    }
+}
