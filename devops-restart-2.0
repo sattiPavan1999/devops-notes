@@ -1,13 +1,21 @@
 basic pipeline:
+
 pipeline {
-    agent any
+    agent {
+        node {
+            label 'dev'
+        }
+    }
+    environment {
+        SCANNER_HOME = "mysonar"
+    }
     tools {
         maven 'mymaven'
     }
     stages {
         stage('code') {
             steps {
-                git 'https://github.com/sattiPavan1999/one.git'
+                git branch: 'develop-1.0', url: 'https://github.com/sattiPavan1999/demorepo.git'
             }
         }
         stage('Build') {
@@ -15,14 +23,14 @@ pipeline {
                 sh 'mvn clean package'
             }
         }
-        stage('artifact') {
+        stage('CQA') {
             steps {
-                nexusArtifactUploader artifacts: [[artifactId: 'myweb', classifier: '', file: 'target/myweb-8.7.2.war', type: 'war']], credentialsId: 'nexus-cred', groupId: 'in.javahome', nexusUrl: '40.192.33.41:8081', nexusVersion: 'nexus3', protocol: 'http', repository: 'flm', version: '8.7.2'
-            }
-        }
-        stage('Deploy') {
-            steps {
-                deploy adapters: [tomcat9(alternativeDeploymentContext: '', credentialsId: 'tomcat-cred', path: '', url: 'http://16.112.58.129:8080/')], contextPath: 'myapp', war: 'target/*.war'
+                sh '''
+                mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.9.1.2184:sonar \
+                -Dsonar.projectKey=myproject \
+                -Dsonar.host.url=http://18.61.72.103:9000 \
+                -Dsonar.login=d8a21554121ad57468b0e0e4a00b56d93db561d7
+                '''
             }
         }
     }
