@@ -4,7 +4,7 @@ Install tomcat on ec2 amazon linux
 
 
 # Install Java
-yum install java-17-amazon-corretto -y
+yum install java-21-amazon-corretto -y
 
 # Install Git
 yum install git -y
