@@ -1,0 +1,29 @@
+basic pipeline:
+pipeline {
+    agent any
+    tools {
+        maven 'mymaven'
+    }
+    stages {
+        stage('code') {
+            steps {
+                git 'https://github.com/sattiPavan1999/one.git'
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+        stage('artifact') {
+            steps {
+                nexusArtifactUploader artifacts: [[artifactId: 'myweb', classifier: '', file: 'target/myweb-8.7.2.war', type: 'war']], credentialsId: 'nexus-cred', groupId: 'in.javahome', nexusUrl: '40.192.33.41:8081', nexusVersion: 'nexus3', protocol: 'http', repository: 'flm', version: '8.7.2'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                deploy adapters: [tomcat9(alternativeDeploymentContext: '', credentialsId: 'tomcat-cred', path: '', url: 'http://16.112.58.129:8080/')], contextPath: 'myapp', war: 'target/*.war'
+            }
+        }
+    }
+}
