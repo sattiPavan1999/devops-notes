@@ -1,4 +1,4 @@
-basic pipeline:
+basic pipeline: Below we need to add artifacts step for test and uat pipeline
 
 pipeline {
     agent {
@@ -31,6 +31,11 @@ pipeline {
                 -Dsonar.host.url=http://18.61.72.103:9000 \
                 -Dsonar.login=d8a21554121ad57468b0e0e4a00b56d93db561d7
                 '''
+            }
+        }
+        stage("deploy") {
+            steps {
+                deploy adapters: [tomcat9(alternativeDeploymentContext: '', credentialsId: 'tomcat-cred', path: '', url: 'http://98.130.44.175:8080/')], contextPath: 'e-commerce', war: 'target/*.war'
             }
         }
     }
