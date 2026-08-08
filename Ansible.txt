@@ -18,7 +18,14 @@ systemctl restart sshd -> Do this in all servers
 
 MASTER:
 vim /etc/ansible/hosts 
-(Inventory to save the IPs of slave servers) (only in master or ansible server)  
+(Inventory to save the private IPs of slave servers) (only in master or ansible server)  
+(
+[dev]
+172.31.21.40
+
+[test]
+172.31.28.13
+)
 
 ssh-keygen 
 (To generate a key)
