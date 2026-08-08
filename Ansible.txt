@@ -75,14 +75,16 @@ vim playbook.yaml
 3.
 
 ---
-# this is a target
+# this is a target section
 - hosts: all
   connection: ssh
 
+# this is a variable section
   vars:
     - a: git
     - b: maven
 
+# this is a tasks section
   tasks:
     - name: This is for installing git
       yum: name={{a}} state=present
