@@ -2,14 +2,19 @@ ANSIBLE NOTES/SETUPS/STEPS 
 
 yum install ansible -y 
 yum install python-pip -y 
-passwd root  
+passwd root  -> Do this in all servers
 
-vim /etc/ssh/sshd_config  
-(40, 65 lines)
+vim /etc/ssh/sshd_config  -> Do this in all servers
+(40, 65 lines) (these should be like these)
+(
+PermitRootLogin yes
+PasswordAuthentication yes
+)
 
-systemctl restart sshd 
+systemctl restart sshd -> Do this in all servers
 (To restart sshd)
 
+MASTER:
 vim /etc/ansible/hosts 
 (Inventory to save the IPs of slave servers) (only in master or ansible server)  
 
