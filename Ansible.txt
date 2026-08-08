@@ -39,6 +39,10 @@ ansible all -m ping 
 (To check all the servers which are connected to master server)
 
 
+ansible dev -m ping
+(If you want to check only dev env related servers then use this command)
+
+
 vim playbook.yaml
 
 1.
