@@ -1,7 +1,9 @@
 ANSIBLE NOTES/SETUPS/STEPS 
 
+MASTER:
 yum install ansible -y 
 yum install python-pip -y 
+
 passwd root  -> Do this in all servers
 
 vim /etc/ssh/sshd_config  -> Do this in all servers
