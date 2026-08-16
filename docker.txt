@@ -303,7 +303,7 @@ docker run -itd --name mycontainer2 -p 1001:80 image:v2
 trivy 
 Install trivy
 
-curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.41.0
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin v0.74.0
 
 trivy -v
 (Check version)
