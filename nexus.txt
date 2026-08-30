@@ -34,6 +34,6 @@ Restart=on-abort
 WantedBy=multi-user.target
 EOL
 sudo chkconfig nexus on
-sudo systemctl start nexus
-sudo systemctl enable nexus
-sudo systemctl status nexus 
+sudo systemctl start nexus.service
+sudo systemctl enable nexus.service
+sudo systemctl status nexus.service
