@@ -28,16 +28,27 @@ NOTE: delete the cluster through command because we created through command
 	(know if it is installed or not)
 
 
-⦁	aws s3 mb s3://mybucket1.flm
+Install kubectl :
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+chmod +x kubectl
+mkdir -p ~/.local/bin
+mv ./kubectl ~/.local/bin/kubectl
+kubectl version --client
+
+
+⦁	aws s3 mb s3://mybucketpavan1999.flm
 	(Here the s3 bucket name should be unique)
 	(before doing this s3 and ec2 are different users. so both wont communicate by default. update IAM to ec2 then both 	will communicate)
 ⦁	aws s3 ls
 	(list of s3 buckets)
-⦁	export KOPS_STATE_STORE=s3://mybucket1.flm
+⦁	export KOPS_STATE_STORE=s3://mybucketpavan1999.flm
 	(we are specifying that the cluster information should be saved in this "mybucket1.flm" bucket)
 
 
-⦁	kops create cluster --name mycluster.k8s.local --zones=ap-south-1a,ap-south-1b --master-count=1 --master-size=c7i-flex.large --master-volume-size=30 --node-count=2 --node-size=t3.micro --node-volume-size=20 --image=ami-02d26659fd82cf299
+⦁ kops create cluster --name mycluster.k8s.local --zones=ap-south-1a,ap-south-1b --master-count=1 --master-size=c7i-flex.large --master-volume-size=30 --node-count=2 --node-size=t3.micro --node-volume-size=20 --image=ami-01a00762f46d584a1
 (NOTE: the master node count should be a odd number)
 (NOTE: image ID we will get from aws, select the region and click create or launch instance and select the ubuntu and below we will get the ID and we have copy and paste that in the above command)
 (we have to select the image ID where we are creating zones in this command)
