@@ -18,14 +18,14 @@ NOTE: delete the cluster through command because we created through command
 
 
 
-
-⦁	curl -Lo kops https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
-⦁	chmod +x kops
-⦁	sudo mv kops /usr/local/bin/kops
+install kops:
+curl -Lo kops https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+chmod +x kops
+sudo mv kops /usr/local/bin/kops
+kops version
+	(know if it is installed or not)
 	(Install this in ec2 server)
 	(we can get this through official link https://kops.sigs.k8s.io/getting_started/install/)
-⦁	kops version
-	(know if it is installed or not)
 
 
 Install kubectl :
