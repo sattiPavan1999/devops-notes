@@ -10,22 +10,36 @@ ARGO CD
 
 
 
-    4  curl -Lo kops https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
-    5  chmod +x kops
-    6  sudo mv kops /usr/local/bin/kops
-	(install kops)
+    install kops:
+	curl -Lo kops https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+	chmod +x kops
+	sudo mv kops /usr/local/bin/kops
+	kops version
+	(know if it is installed or not)
+	(Install this in ec2 server)
+	(we can get this through official link https://kops.sigs.k8s.io/getting_started/install/)
 
-    7  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-    8  chmod +x kubectl
-    9  mv kubectl /usr/local/bin
-	(install kubectl)
 
-   10  kubectl version
-   11  kops version
+Install kubectl :
+	curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+	curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+	echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+	sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+	chmod +x kubectl
+	mkdir -p ~/.local/bin
+	mv ./kubectl ~/.local/bin/kubectl
+	kubectl version --client
 
-   12  aws s3 ls
-   13  export KOPS_STATE_STORE=s3://mybucket1.flm
-      27   kops create cluster --name mycluster.k8s.local --zones=ap-south-1a,ap-south-1b --master-count=1 --master-size=m7i-flex.large --master-volume-size=30 --node-count=3 --node-size=c7i-flex.large --node-volume-size=30 --image=ami-01a00762f46d584a1
+
+⦁	aws s3 mb s3://mybucket11.flm
+	(Here the s3 bucket name should be unique)
+	(before doing this s3 and ec2 are different users. so both wont communicate by default. update IAM to ec2 then both 	will communicate)
+⦁	aws s3 ls
+	(list of s3 buckets)
+⦁	export KOPS_STATE_STORE=s3://mybucket11.flm
+	(we are specifying that the cluster information should be saved in this "mybucket1.flm" bucket)
+
+   27   kops create cluster --name mycluster.k8s.local --zones=ap-south-1a,ap-south-1b --master-count=1 --master-size=m7i-flex.large --master-volume-size=30 --node-count=3 --node-size=c7i-flex.large --node-volume-size=30 --image=ami-01a00762f46d584a1
    28   kops update cluster --name mycluster.k8s.local --yes --admin
 	(create cluster)
 
