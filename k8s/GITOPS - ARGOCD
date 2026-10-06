@@ -25,7 +25,7 @@ ARGO CD
 
    12  aws s3 ls
    13  export KOPS_STATE_STORE=s3://mybucket1.flm
-      27   kops create cluster --name mycluster.k8s.local --zones=ap-south-1a,ap-south-1b --master-count=1 --master-size=m7i-flex.large --master-volume-size=30 --node-count=3 --node-size=c7i-flex.large --node-volume-size=30 --image=ami-02d26659fd82cf299
+      27   kops create cluster --name mycluster.k8s.local --zones=ap-south-1a,ap-south-1b --master-count=1 --master-size=m7i-flex.large --master-volume-size=30 --node-count=3 --node-size=c7i-flex.large --node-volume-size=30 --image=ami-01a00762f46d584a1
    28   kops update cluster --name mycluster.k8s.local --yes --admin
 	(create cluster)
 
