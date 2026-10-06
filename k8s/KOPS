@@ -39,12 +39,12 @@ Install kubectl :
 	kubectl version --client
 
 
-⦁	aws s3 mb s3://mybucketpavan1999.flm
+⦁	aws s3 mb s3://mybucket11.flm
 	(Here the s3 bucket name should be unique)
 	(before doing this s3 and ec2 are different users. so both wont communicate by default. update IAM to ec2 then both 	will communicate)
 ⦁	aws s3 ls
 	(list of s3 buckets)
-⦁	export KOPS_STATE_STORE=s3://mybucketpavan1999.flm
+⦁	export KOPS_STATE_STORE=s3://mybucket11.fl
 	(we are specifying that the cluster information should be saved in this "mybucket1.flm" bucket)
 
 
