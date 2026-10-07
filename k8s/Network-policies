@@ -182,20 +182,32 @@ spec:
 	(we can update the pod or container directly using this command)
 	(we no need to go inside the pod)
 
-   20  kubectl exec -it client -- apt install iputils-ping -y
+   20  kubectl exec -it client -- apt-get install -y --no-install-recommends \
+		  iputils-ping \
+		  libcap2=1:2.44-1 \
+		  libcap2-bin=1:2.44-1
 	(install ping package)
 
    21  kubectl exec -it client -- ping google.com
 	(check if ping is working or not)
 
    22  kubectl exec -it swiggy -- apt update -y
-   23  kubectl exec -it swiggy -- apt install iputils-ping -y
+   23  kubectl exec -it swiggy -- apt-get install -y --no-install-recommends \
+		  iputils-ping \
+		  libcap2=1:2.44-1 \
+		  libcap2-bin=1:2.44-1
 
    24  kubectl exec -it zomato -- apt update -y
-   25  kubectl exec -it zomato -- apt install iputils-ping -y
+   25  kubectl exec -it zomato -- apt-get install -y --no-install-recommends \
+		  iputils-ping \
+		  libcap2=1:2.44-1 \
+		  libcap2-bin=1:2.44-1
 
    26  kubectl exec -it uber -- apt update -y
-   27  kubectl exec -it uber -- apt install iputils-ping -y
+   27  kubectl exec -it uber -- apt-get install -y --no-install-recommends \
+		  iputils-ping \
+		  libcap2=1:2.44-1 \
+		  libcap2-bin=1:2.44-1
 
    28  kubectl get netpol
 	(list of network policies)
