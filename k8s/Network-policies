@@ -84,18 +84,18 @@ If we delete network policy then the pods will communicate again
 
 NOTE: Start Newly
 
-    1  yum install docker -y && systemctl start docker
+    yum install docker -y && systemctl start docker
 	(installing Docker for minikube)
 
-    2  curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-amd64
-    3  sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
-    7  minikube start --network-plugin=cni --cni=calico --force
+    curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-amd64
+    sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
+    minikube start --network-plugin=cni --cni=calico --force
 
-    4  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-    5  chmod +x kubectl
-    6  mv kubectl /usr/local/bin/
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    chmod +x kubectl
+    mv kubectl /usr/local/bin/
     
-    8  kubectl get pods -l k8s-app=calico-node -A
+    kubectl get pods -l k8s-app=calico-node -A
 	(install calico tool)
 
     9  vim pod.yaml
