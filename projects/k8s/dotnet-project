@@ -1,0 +1,75 @@
+This is the jenkins pipeline :
+
+Here whenever dev pushes to the github repo then automatically new image gets created and stored on dockerhub and new image will be updated in deployments and statefulset files in the repo/k8s folder.
+so that argoCD can sync these files and create new containers with new images.
+
+  In jenkins I downloaded two plugins : pipeline stage view , docker pipelines
+  I didnt integrated sonarqube and trivy
+  To get DNS link from ingress we need to install one script in server. we can find this script in ingress file in k8s notes in this repo
+  And if any doubt is there, go through the old notes and we can find the answers
+
+  
+
+pipeline {
+    agent any
+    environment {
+        DOCKER_USER = 'pavanreddy1999'
+        IMAGE_TAG   = "${BUILD_NUMBER}"
+    }
+    stages {
+        stage('clean workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+        stage('code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/sattiPavan1999/devops-task-manager.git'
+            }
+        }
+        stage('private code') {
+            steps {
+                git branch: 'main', credentialsId: 'github-id', url: 'https://github.com/sattiPavan1999/devops-task-manager.git'
+            }
+        }
+        stage('Build & Push Images') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'dockerhub-id') {
+                        // Build directly with registry prefix and build tag
+                        sh "docker build -t ${DOCKER_USER}/taskmanager-db:${IMAGE_TAG} database"
+                        sh "docker build -t ${DOCKER_USER}/taskmanager-backend:${IMAGE_TAG} backend"
+                        sh "docker build -t ${DOCKER_USER}/taskmanager-frontend:${IMAGE_TAG} frontend"
+
+                        // Push all images
+                        sh "docker push ${DOCKER_USER}/taskmanager-db:${IMAGE_TAG}"
+                        sh "docker push ${DOCKER_USER}/taskmanager-backend:${IMAGE_TAG}"
+                        sh "docker push ${DOCKER_USER}/taskmanager-frontend:${IMAGE_TAG}"
+                    }
+                }
+            }
+        }
+        stage('Update Manifests & Git Push') {
+            steps {
+                withCredentials([gitUsernamePassword(credentialsId: 'github-id', gitToolName: 'Default')]) {
+                    sh """
+                        # Update the image tag in your statefulset and deployment files
+                        sed -i 's|image: ${DOCKER_USER}/taskmanager-db:.*|image: ${DOCKER_USER}/taskmanager-db:${IMAGE_TAG}|g' k8s/postgres-statefulset.yaml
+                        sed -i 's|image: ${DOCKER_USER}/taskmanager-backend:.*|image: ${DOCKER_USER}/taskmanager-backend:${IMAGE_TAG}|g' k8s/backend-deployment.yaml
+                        sed -i 's|image: ${DOCKER_USER}/taskmanager-frontend:.*|image: ${DOCKER_USER}/taskmanager-frontend:${IMAGE_TAG}|g' k8s/frontend-deployment.yaml
+
+                        git config user.name "jenkins-bot"
+                        git config user.email "jenkins@bot.com"
+                        git add k8s/
+                        git commit -m "Auto-update image tag to ${IMAGE_TAG} [skip ci]" || echo "No changes to commit"
+                        git push origin main
+                    """
+                }
+            }
+        }
+    }
+}
+
+
+
+
