@@ -130,11 +130,12 @@ Note: all these below files in this path only -> /k8s-project/Eks-terraform
     3  git clone https://github.com/sattiPavan1999/3-Tier-Full-Stack-yelp-camp.git
     4  cd 3-Tier-Full-Stack-yelp-camp/
     5  cat .env
-    6  echo -n "mongodb+srv://sattipavan1999_db_user:ANx5jGie1pUR5bSj@cluster0.ads3qyv.mongodb.net/" | base64
-    7  echo -n "pk.eyJ1IjoicGF2YW5zYXR0aSIsImEiOiJjbXZqNG1tcHQwY3RuMnhzZmk4djZyeHBpIn0.LNQyLfBpiDuaIwu5yX54og" | base64
-    8  echo -n "dauwdizce" | base64
-    9  echo -n "372268892768863" | base64
-   10  echo -n "hIyngabkeOMVEWa0ephl49T_rUs" | base64
+    6  echo -n "mongodb+srv://sattipavan1999_db_user:AUR5bSj@cluster0.ads3qyv.mongodb.net/" | base64
+    7  echo -n "pk.eyJ1IjoiG1tcHQwY3RuMnhzZmk4djZyeHBpIn0.LNQyLfBpiDuaIwu5yX54og" | base64
+    8  echo -n "dadizce" | base64
+    9  echo -n "37768863" | base64
+   10  echo -n "hIynephl49T_rUs" | base64
+   (get the original APIs from mongoDB, Mapbox, cloudnary)
    ( Add the encrypted values in 3-Tier-Full-Stack-yelp-camp/Manifests/1.secret.yml )
 
    
