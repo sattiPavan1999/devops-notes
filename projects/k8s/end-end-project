@@ -1,0 +1,208 @@
+End to End Project 
+using k8s, terraform, jenkins, docker, mongoDb for DB
+We dont need statefulset becaude we are using mongoDB
+
+we need to follow the old projects steps to install the plugins, scripts. so go through the old projects i.e.,
+Take the m7i instance
+install jenkins
+install docker and give permissions
+   20  yum install docker -y && systemctl start docker
+   21  chmod 777 /var/run/docker.sock
+create sonarqube container
+   22  docker run -d --name sonar-container -p 9000:9000 sonarqube:lts-community
+install trivy
+   23  curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin v0.76.1
+   24  trivy --version
+install terraform
+   29  sudo yum install -y yum-utils shadow-utils
+   30  sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+   31  sudo yum install terraform
+
+   32  git clone https://github.com/sattiPavan1999/k8s-project.git
+   33  cd k8s-project/
+   34  ls
+   35  git checkout master
+   36  ls
+   37  cd Eks-terraform/
+   38  ls
+update these files to match our requirement or account instances
+   39  vim main.tf
+   40  vim provider.tf
+   41  vim backend.tf
+   42  aws s3 ls
+   45  terraform init
+   46  terraform plan
+   47  terraform apply --auto-approve
+   48  docker ps
+   49  aws eks update-kubeconfig --name EKS_CLOUD --region ap-south-1
+install kubectl
+(see script from old project)
+create NS
+Note: all these below files in this path only -> /k8s-project/Eks-terraform
+   60  kubectl create ns webapps
+   61  vim service-account.yml
+   (
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+     name: jenkins
+     namespace: webapps
+   )
+   67  vim role.yml
+   (
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: app-role
+      namespace: webapps
+    rules:
+      - apiGroups:
+          - ""
+          - apps
+          - autoscaling
+          - batch
+          - extensions
+          - policy
+          - rbac.authorization.k8s.io
+        resources:
+          - pods
+          - componentstatuses
+          - configmaps
+          - daemonsets
+          - deployments
+          - events
+          - endpoints
+          - horizontalpodautoscalers
+          - ingress
+          - jobs
+          - limitranges
+          - namespaces
+          - nodes
+          - pods
+          - persistentvolumes
+          - persistentvolumeclaims
+          - resourcequotas
+          - replicasets
+          - replicationcontrollers
+          - serviceaccounts
+          - services
+          - secrets
+          - poddisruptionbudgets
+        verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+   )
+   68  vim binding.yml
+   (
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+     name: app-rolebinding
+     namespace: webapps
+    roleRef:
+     apiGroup: rbac.authorization.k8s.io
+     kind: Role
+     name: app-role
+    subjects:
+    - namespace: webapps
+      kind: ServiceAccount
+      name: jenkins
+   )
+   70  kubectl create -f service-account.yml
+   72  kubectl create -f role.yml
+   75  kubectl create -f binding.yml
+   76  vim secret.yml
+   (
+    apiVersion: v1
+    kind: Secret
+    type: kubernetes.io/service-account-token
+    metadata:
+      name: mysecret
+      namespace: webapps
+      annotations:
+        kubernetes.io/service-account.name: jenkins
+   )
+   77  kubectl create -f secret.yml
+   81  kubectl describe secret mysecret -n webapps
+   (get the secret and add this in jenkins global credentials)
+
+
+
+    3  git clone https://github.com/sattiPavan1999/3-Tier-Full-Stack-yelp-camp.git
+    4  cd 3-Tier-Full-Stack-yelp-camp/
+    5  cat .env
+    6  echo -n "mongodb+srv://sattipavan1999_db_user:ANx5jGie1pUR5bSj@cluster0.ads3qyv.mongodb.net/" | base64
+    7  echo -n "pk.eyJ1IjoicGF2YW5zYXR0aSIsImEiOiJjbXZqNG1tcHQwY3RuMnhzZmk4djZyeHBpIn0.LNQyLfBpiDuaIwu5yX54og" | base64
+    8  echo -n "dauwdizce" | base64
+    9  echo -n "372268892768863" | base64
+   10  echo -n "hIyngabkeOMVEWa0ephl49T_rUs" | base64
+   ( Add the encrypted values in 3-Tier-Full-Stack-yelp-camp/Manifests/1.secret.yml )
+
+   
+
+This is the jenkins pipeline:
+
+pipeline {
+    agent any
+    environment {
+        scannerHome = tool 'mysonar'
+    }
+    stages {
+        stage('clean ws') {
+            steps {
+                cleanWs()
+            }
+        }
+        stage('get codebase') {
+            steps {
+                git branch: 'main', url: 'https://github.com/sattiPavan1999/3-Tier-Full-Stack-yelp-camp.git'
+            }
+        }
+        stage('CQA') {
+            steps {
+                withSonarQubeEnv('mysonar') {
+                  sh '''${scannerHome}/bin/sonar-scanner -Dsonar.projectName=new-project -Dsonar.projectKey=new-project'''
+                }
+            }
+        }
+        stage('quality gates') {
+            steps {
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-id'
+                }
+            }
+        }
+        stage('build image') {
+            steps {
+                sh "docker build -t pavanreddy1999/camp-project:v1 ."
+            }
+        }
+        stage('scan image') {
+            steps {
+                sh "trivy image pavanreddy1999/camp-project:v1"
+            }
+        }
+        stage('image push') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'dockerhub-id') {
+                        sh "docker push pavanreddy1999/camp-project:v1"
+                    }
+                }
+            }
+        }
+        stage('deploy manifests on EKS') {
+            steps {
+                withKubeCredentials(kubectlCredentials: [[caCertificate: '', clusterName: 'EKS_CLOUD', contextName: '', credentialsId: 'k8s-sevice-account-id', namespace: 'webapps', serverUrl: 'https://672ECED148E7B71CA693F3F78303F9B2.gr7.ap-south-1.eks.amazonaws.com']]) {
+                    sh 'kubectl apply -f Manifests/'
+                }
+            }
+        }
+    }
+    post {
+        always {
+            mail to: 'sattipavan1999@gmail.com',
+            subject: 'pipeline status',
+            body: "${currentBuild.currentResult}:* Job ${env.JOB_NAME} \n build ${env.BUILD_NUMBER} \n More info at: ${env.BUILD_URL}"
+        }
+    }
+}
