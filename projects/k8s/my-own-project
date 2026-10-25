@@ -124,3 +124,19 @@ aws ec2 describe-security-groups --region ap-south-1 \
 Delete any k8s-elb-* ones with aws ec2 delete-security-group --region ap-south-1 --group-id <SG-ID>, then run terraform destroy again.
 
 If anything errors, paste the output. When it finishes, run terraform state list. It should print nothing, which confirms no resources are left billing you. Next time, remember to run kubectl delete namespace microservices before terraform destroy.
+
+check this:
+
+aws ec2 describe-security-groups --region ap-south-1 \
+  --filters Name=vpc-id,Values=vpc-0cb1bd16ec43ab5e8 \
+  --query "SecurityGroups[].[GroupId,GroupName]" --output table
+
+aws ec2 describe-network-interfaces --region ap-south-1 \
+  --filters Name=vpc-id,Values=vpc-0cb1bd16ec43ab5e8 \
+  --query "NetworkInterfaces[].[NetworkInterfaceId,Description,Status]" --output table
+
+
+then :
+
+aws ec2 delete-security-group --region ap-south-1 --group-id <SG-ID>
+terraform destroy --auto-approve
