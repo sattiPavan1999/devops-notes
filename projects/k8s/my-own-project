@@ -140,3 +140,58 @@ then :
 
 aws ec2 delete-security-group --region ap-south-1 --group-id <SG-ID>
 terraform destroy --auto-approve
+
+
+run this :
+terraform state list
+aws eks list-clusters --region ap-south-1
+aws rds describe-db-instances --region ap-south-1 --query "DBInstances[].DBInstanceIdentifier"
+aws ec2 describe-nat-gateways --region ap-south-1 --filter Name=state,Values=available --query "NatGateways[].NatGatewayId"
+
+All should return empty. These are the resources that bill you.
+and if anything is pending then delete those:
+
+aws ec2 delete-security-group --region ap-south-1 --group-id <SG-ID>
+
+then:
+State only shows what Terraform thinks exists, so confirm in AWS that nothing is left billing you:
+
+bash
+aws eks list-clusters --region ap-south-1
+aws rds describe-db-instances --region ap-south-1 --query "DBInstances[].DBInstanceIdentifier"
+aws ec2 describe-nat-gateways --region ap-south-1 --filter Name=state,Values=available --query "NatGateways[].NatGatewayId"
+aws ec2 describe-addresses --region ap-south-1 --query "Addresses[].PublicIp"
+aws elb describe-load-balancers --region ap-south-1 --query "LoadBalancerDescriptions[].LoadBalancerName"
+
+All five should return empty. An Elastic IP that isn’t attached to anything still costs money, which is why the fourth command is worth checking.
+
+Two things are left, and neither is one of the three load balancers from your earlier destroy, so check what they are before you delete anything.
+
+1. The load balancer aa85c5d9d388a4125a05f516dbd84abf
+
+Its name is a Kubernetes-style hex string, so it was probably created by a LoadBalancer service at some point, maybe from an earlier attempt. Inspect it:
+
+bash
+aws elb describe-load-balancers --region ap-south-1 \
+  --load-balancer-names aa85c5d9d388a4125a05f516dbd84abf \
+  --query "LoadBalancerDescriptions[].[VPCId,DNSName,CreatedTime]" --output table
+aws elb describe-tags --region ap-south-1 --load-balancer-names aa85c5d9d388a4125a05f516dbd84abf
+If the VPC is not vpc-0cb1bd16ec43ab5e8 (your deleted VPC) and the tags don’t match anything you know, it’s another project’s. Leave it alone unless you’re sure it’s yours.
+If you recognise it as a leftover from your practice and don’t need it, delete it:
+bash
+  aws elb delete-load-balancer --region ap-south-1 --load-balancer-name aa85c5d9d388a4125a05f516dbd84abf
+
+2. The Elastic IP 35.154.114.137
+
+Your NAT gateway’s IP was released by Terraform, so this is probably attached to something else. The most likely owner is the EC2 instance you’re working on (ip-172-31-4-128). Check:
+
+bash
+aws ec2 describe-addresses --region ap-south-1 --public-ips 35.154.114.137 \
+  --query "Addresses[].[AllocationId,AssociationId,InstanceId,NetworkInterfaceId]" --output table
+curl -s http://checkip.amazonaws.com
+If the IP shown by checkip is 35.154.114.137, it’s your EC2 instance’s own address. Keep it, or you’ll lose your connection.
+If InstanceId and AssociationId are empty (None), nothing is using it and it’s costing you money. Release it:
+bash
+  aws ec2 release-address --region ap-south-1 --allocation-id <AllocationId>
+
+Everything from this Terraform project (EKS, RDS, NAT, VPC) is gone. These two leftovers weren’t created by Terraform, so I can’t tell you for certain whether they’re yours. If you paste the output of the two inspection commands, I’ll tell you which ones are safe to delete.
