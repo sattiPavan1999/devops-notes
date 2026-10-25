@@ -1,0 +1,71 @@
+launch ec2 instance
+install git, jenkins, docker (and give permissions), terraform, kubectl
+clone the repo -> https://github.com/sattiPavan1999/simple-microservices-starter.git
+go to terraform and then give init, plan, apply commands to create VPC, EKS, and etc ..
+
+write pipeline and store images in dockerhub
+pipeline {
+    agent any
+    stages {
+        stage('cleanws') {
+            steps {
+                cleanWs()
+            }
+        }
+        stage('code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/sattiPavan1999/simple-microservices-starter.git'
+            }
+        }
+        stage('build image') {
+            steps {
+                sh "docker build -t pavanreddy1999/node-project-frontend:v1 frontend/."
+                sh "docker build -t pavanreddy1999/node-project-users:v1 users-service/."
+                sh "docker build -t pavanreddy1999/node-project-products:v1 products-service/."
+            }
+        }
+        stage('image push') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'dockerhub-id') {
+                        sh "docker push pavanreddy1999/node-project-frontend:v1"
+                        sh "docker push pavanreddy1999/node-project-users:v1"
+                        sh "docker push pavanreddy1999/node-project-products:v1"
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+then apply k8s commands 
+
+
+2. Create the namespace and DB secrets
+* * *
+kubectl apply -f 00-namespace.yaml
+
+kubectl create secret generic users-db-secret -n microservices \
+  --from-literal=DATABASE_URL="$(aws ssm get-parameter --name /simple-microservices-dev/users/DATABASE_URL --with-decryption --query Parameter.Value --output text)"
+
+kubectl create secret generic products-db-secret -n microservices \
+  --from-literal=DATABASE_URL="$(aws ssm get-parameter --name /simple-microservices-dev/products/DATABASE_URL --with-decryption --query Parameter.Value --output text
+
+
+3. Deploy the backends (after replacing DOCKERHUB_USERNAME in the YAMLs and pushing your images)
+
+bash
+kubectl apply -f users.yaml -f products.yaml
+kubectl get svc -n microservices -w
+
+Wait until both show an EXTERNAL-IP hostname, then press Ctrl+C.
+
+4. Set those hostnames in frontend.yaml, then deploy it
+
+bash
+kubectl apply -f frontend.yaml
+kubectl get svc frontend -n microservices
+
+Open the frontend hostname in your browser.
+
