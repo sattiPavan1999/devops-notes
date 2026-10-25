@@ -69,3 +69,58 @@ kubectl get svc frontend -n microservices
 
 Open the frontend hostname in your browser.
 
+
+
+
+
+
+
+if you get errors while destroying then refer these below
+This is the problem I warned about. When Kubernetes created your 3 LoadBalancer services, AWS created 3 load balancers in the public subnets. Terraform doesn’t know about them, so the subnets and the internet gateway can’t be deleted while those load balancers still hold public addresses (“mapped public address(es)”).
+
+1. Find the leftover load balancers in your VPC
+
+bash
+aws elb describe-load-balancers --region ap-south-1 \
+  --query "LoadBalancerDescriptions[?VPCId=='vpc-0cb1bd16ec43ab5e8'].LoadBalancerName" --output text
+
+aws elbv2 describe-load-balancers --region ap-south-1 \
+  --query "LoadBalancers[?VpcId=='vpc-0cb1bd16ec43ab5e8'].LoadBalancerArn" --output text
+
+The first command (classic load balancers) should list 3 names. The second will probably be empty.
+
+2. Delete them
+
+bash
+aws elb delete-load-balancer --region ap-south-1 --load-balancer-name <NAME-1>
+aws elb delete-load-balancer --region ap-south-1 --load-balancer-name <NAME-2>
+aws elb delete-load-balancer --region ap-south-1 --load-balancer-name <NAME-3>
+
+Use the real names from step 1. They are the long hex strings, like the ones in your kubectl get svc hostnames. If step 1’s second command printed any ARNs, delete those with aws elbv2 delete-load-balancer --load-balancer-arn <ARN>.
+
+3. Wait 2–3 minutes, then check nothing is left
+
+bash
+aws ec2 describe-network-interfaces --region ap-south-1 \
+  --filters Name=vpc-id,Values=vpc-0cb1bd16ec43ab5e8 \
+  --query "NetworkInterfaces[].[NetworkInterfaceId,Description,Status]" --output table
+
+Interfaces that mention ELB should be gone. If some remain, wait a bit longer.
+
+4. Re-run the destroy
+
+bash
+terraform destroy
+
+5. If the VPC itself then fails to delete
+
+Kubernetes also creates security groups named k8s-elb-..., and these can block the VPC. List them:
+
+bash
+aws ec2 describe-security-groups --region ap-south-1 \
+  --filters Name=vpc-id,Values=vpc-0cb1bd16ec43ab5e8 \
+  --query "SecurityGroups[?GroupName!='default'].[GroupId,GroupName]" --output table
+
+Delete any k8s-elb-* ones with aws ec2 delete-security-group --region ap-south-1 --group-id <SG-ID>, then run terraform destroy again.
+
+If anything errors, paste the output. When it finishes, run terraform state list. It should print nothing, which confirms no resources are left billing you. Next time, remember to run kubectl delete namespace microservices before terraform destroy.
